@@ -31,4 +31,5 @@ Route::middleware('guest')->prefix('/v1')->group(function(){
 Route::prefix('/v1')->middleware('auth:sanctum')->group(function(){
     Route::put('/assign/hr/{user_id}', [HeadOfHRController::class, 'AssignHR']);
     Route::post('/create/recruitment', [RecruitmentBatchController::class, 'CreateRecruitmentBatches']);
+    Route::post('/logout', [AuthController::class, 'Logout']);
 });

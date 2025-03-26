@@ -6,6 +6,7 @@ use App\ApiResponder;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
@@ -103,5 +104,13 @@ class AuthController extends Controller
         $token = $user->createToken($user->email)->plainTextToken;
 
         return $this->successResponse('Login successful', ['token' => $token], 200);
+    }
+
+    public function Logout(Request $request)
+    {
+        $user = $request->user();
+        $user->currentAccessToken()->delete();
+
+        return $this->successResponseWithoutData('Successfully logged out', 200);
     }
 }

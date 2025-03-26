@@ -1,0 +1,23 @@
+
+services:
+    mysql:
+        image: mysql:9.2
+        container_name: hr_recruitment_mysql
+        restart: always
+        environment:
+            MYSQL_ROOT_PASSWORD: Sudarmi12
+            MYSQL_DATABASE: hr_recruitment
+            MYSQL_USER: Hafizh
+            MYSQL_PASSWORD: Sudarmi12
+        ports:
+            - "3306:3306"
+        volumes:
+            - mysql_data:/var/lib/mysql
+        networks:
+            - hr_recruitment_network
+
+volumes:
+    mysql_data:
+
+networks:
+  hr_recruitment_network:
