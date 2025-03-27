@@ -6,9 +6,11 @@ use App\ApiResponder;
 use App\Http\Requests\CreateUser;
 use App\Http\Requests\LoginRequest;
 use App\Models\User;
+use App\Services\ApiResponderService;
 use App\Services\UserService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -16,7 +18,6 @@ use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
 {
-    use ApiResponder;
     protected UserService $userService;
 
     public function __construct(UserService $userService)
@@ -26,22 +27,14 @@ class AuthController extends Controller
 
     public function register(CreateUser $request, $departmentID)
     {
-        try{
-            $this->userService->register($request, $departmentID);
-            return $this->successResponse('User created', 201);
-        } catch (\Exception $e) {
-            return $this->failResponse($e->getMessage(), $e->getCode(), ['context' => $e]);
-        }
+        $this->userService->register($request, $departmentID);
+        return (new ApiResponderService)->successResponse('User created', Response::HTTP_CREATED);
     }
 
     public function login(LoginRequest $request)
     {
-        try {
-            $token = $this->userService->login($request);
-            return $this->successResponse();
-        } catch (\Exception $e){
-            return $this->failResponse($e->getMessage(), 401, ['context' => $e]);
-        }
+        $token = $this->userService->login($request);
+        return (new ApiResponderService)->successResponse('Login', Response::HTTP_OK, ['token' => $token]);
     }
 
 

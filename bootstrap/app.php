@@ -1,16 +1,18 @@
 <?php
 
 use App\Services\ApiResponderService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\MassAssignmentException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Http\Client\Request;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -44,6 +46,11 @@ return Application::configure(basePath: dirname(__DIR__))
             ]);
         });
 
+        $exceptions->render(function (AuthorizationException $e, Request $request) {
+            if ($request->is(config('constants.ROUTE_API_WILDCARD'))) {
+                return (new ApiResponderService)->failResponse(message: $e->getMessage(), statusCode: Response::HTTP_FORBIDDEN);
+            }
+        });
 
         $exceptions->render(function (NotFoundHttpException $e, Request $request){
             if ($request->is(config('constants.ROUTE_API_WILDCARD'))){
@@ -65,13 +72,27 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function(ModelNotFoundException $e, Request $request){
             if($request->is(config('constants.ROUTE_API_WILDCARD'))){
-                return (new ApiResponderService)->failResponse(message: $e->getMessage(), statusCode: 404);
+                return (new ApiResponderService)->failResponse(message: $e->getMessage(), statusCode: Response::HTTP_NOT_FOUND);
             }
         });
 
+        $exceptions->render(function(ValidationException $e, Request $request){
+            if($request->is(config('constants.ROUTE_API_WILDCARD'))){
+                return (new ApiResponderService)->failResponse(message: $e->getMessage(), statusCode: Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+        });
+
+        $exceptions->render(function(AccessDeniedHttpException $e, Request $request){
+            if($request->is(config('constants.ROUTE_API_WILDCARD'))){
+                return (new ApiResponderService)->failResponse(message: $e->getMessage(), statusCode: Response::HTTP_FORBIDDEN);
+            }
+        });
+
+
+
         $exceptions->render(function(\Exception $e, Request $request){
             if($request->is(config('constants.ROUTE_API_WILDCARD'))){
-                return (new ApiResponderService)->failResponse(message: $e->getMessage(), statusCode: 500);
+                return (new ApiResponderService)->failResponse(message: $e->getMessage(), statusCode: Response::HTTP_INTERNAL_SERVER_ERROR, errors: ['context' => $e->getTrace()]);
             }
         });
 

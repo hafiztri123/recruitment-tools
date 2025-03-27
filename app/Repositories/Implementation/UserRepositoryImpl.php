@@ -13,7 +13,7 @@ class UserRepositoryImpl implements UserRepository
 {
     public function create(User $user) :void
     {
-            $user->save();
+            $user->saveOrFail();
     }
 
     public function findByEmail(string $email): User
