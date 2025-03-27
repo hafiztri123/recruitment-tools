@@ -3,9 +3,9 @@
 namespace App\Repositories\Implementation;
 
 use App\Models\Department;
-use App\Repositories\DepartmentRepositoryInterface;
+use App\Repositories\DepartmentRepository;
 
-class EloquentDepartmentRepository implements DepartmentRepositoryInterface
+class DepartmentRepositoryImpl implements DepartmentRepository
 {
     public function departmentExists(int $id): bool
     {

@@ -7,7 +7,7 @@ use App\Http\Requests\CreateUser;
 use App\Http\Requests\LoginRequest;
 use Exception;
 
-interface UserServiceInterface
+interface UserService
 {
     public function register(CreateUser $request, int $departmentID): void;
     public function login(LoginRequest $reqyest): string;

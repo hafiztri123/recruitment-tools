@@ -6,7 +6,7 @@ use App\Http\Requests\CreateUser;
 use App\Models\User;
 use Exception;
 
-interface UserRepositoryInterface
+interface UserRepository
 {
     public function create(User $user): void;
     public function findByEmail(string $email): User;

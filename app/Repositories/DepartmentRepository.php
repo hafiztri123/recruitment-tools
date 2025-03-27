@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
-interface DepartmentRepositoryInterface{
+interface DepartmentRepository
+{
     public function departmentExists(int $id): bool;
 }

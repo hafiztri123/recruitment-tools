@@ -5,29 +5,29 @@ namespace App\Services\Implementation;
 use App\Http\Requests\CreateUser;
 use App\Http\Requests\LoginRequest;
 use App\Models\User;
-use App\Repositories\DepartmentRepositoryInterface;
-use App\Repositories\UserRepositoryInterface;
-use App\Services\UserServiceInterface;
+use App\Repositories\DepartmentRepository;
+use App\Repositories\UserRepository;
+use App\Services\UserService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Hash;
 use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 
 
-class UserService implements UserServiceInterface
+class UserServiceImpl implements UserService
 {
     //TODO: BAD PRACTICE, FIX LATER
     private $HR = 1;
     private $USER = 2;
     private $HEAD_OF_HR = 3;
 
-    protected UserRepositoryInterface $userRepository;
-    protected DepartmentRepositoryInterface $departmentRepository;
+    protected UserRepository $userRepository;
+    protected DepartmentRepository $departmentRepository;
 
-    public function __construct(UserRepositoryInterface $userRepositoryInterface, DepartmentRepositoryInterface $departmentRepositoryInterface)
+    public function __construct(UserRepository $userRepository, DepartmentRepository $departmentRepository)
     {
-        $this->userRepository = $userRepositoryInterface;
-        $this->departmentRepository = $departmentRepositoryInterface;
+        $this->userRepository = $userRepository;
+        $this->departmentRepository = $departmentRepository;
     }
 
     public function register(CreateUser $request, int $departmentID): void

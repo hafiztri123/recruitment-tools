@@ -3,13 +3,13 @@
 namespace App\Repositories\Implementation;
 
 use App\Models\User;
-use App\Repositories\UserRepositoryInterface;
+use App\Repositories\UserRepository;
 use Illuminate\Database\Eloquent\MassAssignmentException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Log;
 
-class EloquentUserRepository implements UserRepositoryInterface
+class UserRepositoryImpl implements UserRepository
 {
     public function create(User $user) :void
     {
