@@ -5,5 +5,5 @@ namespace App\Repositories;
 
 interface RoleRepository
 {
-    public function findRoleBySlug(string $slug): int;
+    public function findRoleIDBySlug(string $slug): int;
 }

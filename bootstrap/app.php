@@ -1,8 +1,17 @@
 <?php
 
+use App\Services\ApiResponderService;
+use Illuminate\Database\Eloquent\MassAssignmentException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Client\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -15,5 +24,55 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+
+
+        $exceptions->report(function (Throwable $e){
+            if ($e instanceof NotFoundHttpException){
+                return false;
+            }
+
+            if ($e instanceof ValidationException){
+                return false;
+            }
+
+            Log::error('Exception occured', [
+                'message' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        });
+
+
+        $exceptions->render(function (NotFoundHttpException $e, Request $request){
+            if ($request->is(config('constants.ROUTE_API_WILDCARD'))){
+                return (new ApiResponderService)->failResponse(message: $e->getMessage(), statusCode: Response::HTTP_NOT_FOUND);
+            }
+        });
+
+        $exceptions->render(function(QueryException $e, Request $request){
+            if ($request->is(config('constants.ROUTE_API_WILDCARD'))){
+                return (new ApiResponderService)->failResponse(message: $e->getMessage(), statusCode: Response::HTTP_BAD_REQUEST);
+            }
+        });
+
+        $exceptions->render(function(MassAssignmentException $e, Request $request){
+            if ($request->is(config('constants.ROUTE_API_WILDCARD'))){
+                return (new ApiResponderService)->failResponse(message: $e->getMessage(), statusCode: Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+        });
+
+        $exceptions->render(function(ModelNotFoundException $e, Request $request){
+            if($request->is(config('constants.ROUTE_API_WILDCARD'))){
+                return (new ApiResponderService)->failResponse(message: $e->getMessage(), statusCode: 404);
+            }
+        });
+
+        $exceptions->render(function(\Exception $e, Request $request){
+            if($request->is(config('constants.ROUTE_API_WILDCARD'))){
+                return (new ApiResponderService)->failResponse(message: $e->getMessage(), statusCode: 500);
+            }
+        });
+
     })->create();

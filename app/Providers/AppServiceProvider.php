@@ -2,11 +2,17 @@
 
 namespace App\Providers;
 
+use App\Models\User;
 use App\Repositories\DepartmentRepository;
+use App\Repositories\Implementation\DepartmentRepositoryImpl;
+use App\Repositories\Implementation\RoleRepositoryImpl;
+use App\Repositories\Implementation\UserRepositoryImpl;
+use App\Repositories\RoleRepository;
 use App\Repositories\UserRepository;
 use Illuminate\Support\ServiceProvider;
 use App\Services\Implementation\UserServiceImpl;
 use App\Services\UserService;
+use Illuminate\Support\Facades\Gate;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -16,8 +22,9 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(UserService::class, UserServiceImpl::class);
-        $this->app->bind(DepartmentRepository::class, DepartmentRepository::class);
-        $this->app->bind(UserRepository::class, UserRepository::class);
+        $this->app->bind(DepartmentRepository::class, DepartmentRepositoryImpl::class);
+        $this->app->bind(UserRepository::class, UserRepositoryImpl::class);
+        $this->app->bind(RoleRepository::class, RoleRepositoryImpl::class);
     }
 
     /**
@@ -25,6 +32,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::before(function (User $user, string $ability){
+            if($user->hasRole(config('role.HEAD_OF_HR'))){
+                return true;
+            };
+
+            return null;
+        });
 
     }
 }

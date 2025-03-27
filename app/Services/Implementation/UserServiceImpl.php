@@ -6,29 +6,23 @@ use App\Http\Requests\CreateUser;
 use App\Http\Requests\LoginRequest;
 use App\Models\User;
 use App\Repositories\DepartmentRepository;
+use App\Repositories\RoleRepository;
 use App\Repositories\UserRepository;
 use App\Services\UserService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Hash;
-use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 
 
 class UserServiceImpl implements UserService
 {
-    //TODO: BAD PRACTICE, FIX LATER
-    private $HR = 1;
-    private $USER = 2;
-    private $HEAD_OF_HR = 3;
 
-    protected UserRepository $userRepository;
-    protected DepartmentRepository $departmentRepository;
 
-    public function __construct(UserRepository $userRepository, DepartmentRepository $departmentRepository)
-    {
-        $this->userRepository = $userRepository;
-        $this->departmentRepository = $departmentRepository;
-    }
+    public function __construct(
+        protected UserRepository $userRepository,
+        protected DepartmentRepository $departmentRepository,
+        protected RoleRepository $roleRepository
+    ) {}
 
     public function register(CreateUser $request, int $departmentID): void
     {
@@ -43,9 +37,12 @@ class UserServiceImpl implements UserService
             'department_id' => $departmentID
         ]);
 
+
+
         $this->userRepository->create($user);
 
-        $user->roles()->attach(2);
+        $this->assignRole(user: $user, slug: 'user');
+
 
     }
 
@@ -60,4 +57,11 @@ class UserServiceImpl implements UserService
 
         return $user->createToken('auth_token')->plainTextToken;
     }
+
+    private function assignRole(User $user, string $slug): void
+    {
+        $roleID = $this->roleRepository->findRoleIDBySlug(slug: $slug);
+        $user->roles()->attach(ids: $roleID);
+    }
 }
+    

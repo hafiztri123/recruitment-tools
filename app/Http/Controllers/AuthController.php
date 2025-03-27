@@ -6,7 +6,7 @@ use App\ApiResponder;
 use App\Http\Requests\CreateUser;
 use App\Http\Requests\LoginRequest;
 use App\Models\User;
-use App\Services\UserServiceInterface;
+use App\Services\UserService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,9 +17,9 @@ use Illuminate\Validation\Rules\Password;
 class AuthController extends Controller
 {
     use ApiResponder;
-    protected UserServiceInterface $userService;
+    protected UserService $userService;
 
-    public function __construct(UserServiceInterface $userService)
+    public function __construct(UserService $userService)
     {
         $this->userService = $userService;
     }
@@ -28,9 +28,9 @@ class AuthController extends Controller
     {
         try{
             $this->userService->register($request, $departmentID);
-            return $this->successResponseWithoutData('User created', 201);
+            return $this->successResponse('User created', 201);
         } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage(), $e->getCode(), ['context' => $e]);
+            return $this->failResponse($e->getMessage(), $e->getCode(), ['context' => $e]);
         }
     }
 
@@ -38,9 +38,9 @@ class AuthController extends Controller
     {
         try {
             $token = $this->userService->login($request);
-            return $this->successResponse('Login success',['token' => $token],  200);
+            return $this->successResponse();
         } catch (\Exception $e){
-            return $this->errorResponse($e->getMessage(), 401, ['context' => $e]);
+            return $this->failResponse($e->getMessage(), 401, ['context' => $e]);
         }
     }
 
