@@ -3,8 +3,13 @@
 namespace App\Providers;
 
 use App\Policies\UserPolicy;
-use Illuminate\Support\Facades\Gate;
+use App\Repositories\DepartmentRepositoryInterface;
+use App\Repositories\Implementation\EloquentDepartmentRepository;
+use App\Repositories\Implementation\EloquentUserRepository;
+use App\Repositories\UserRepositoryInterface;
+use App\Services\UserServiceInterface;
 use Illuminate\Support\ServiceProvider;
+use App\Services\Implementation\UserService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -13,7 +18,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(UserServiceInterface::class, UserService::class);
+        $this->app->bind(DepartmentRepositoryInterface::class, EloquentDepartmentRepository::class);
+        $this->app->bind(UserRepositoryInterface::class, EloquentUserRepository::class);
     }
 
     /**
@@ -21,8 +28,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Gate::define('CreateRecruitmentBatches', [UserPolicy::class, 'CreateRecruitmentBatches']);
-        Gate::define('AssignRoles', [UserPolicy::class, 'AssignRoles']);
-        Gate::define('IsHeadOfHR', [UserPolicy::class, 'IsHeadOfHR']);
+
     }
 }

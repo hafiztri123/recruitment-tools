@@ -21,11 +21,10 @@ trait ApiResponder
         ], $codeNumber);
     }
 
-    function errorResponse(string $message, string $code, int $codeNumber = 404, array $data = null)
+    function errorResponse(string $message, int $codeNumber = 404, ?array $data = null)
     {
         return response()->json([
             'status' => 'error',
-            'code' => $code,
             'message' => $message,
             'details' => $data
         ], $codeNumber);

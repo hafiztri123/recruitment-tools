@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'department_id'
 
     ];
 
@@ -50,16 +52,10 @@ class User extends Authenticatable
         ];
     }
 
-    public function hasRole($roles): bool
+    public function roles(): BelongsToMany
     {
-        $roles = (array) $roles;
-
-        $userRoles = DB::table('role_user')
-            ->join('roles', 'role_user.role_id', '=', 'roles.id')
-            ->where('role_user.user_id', $this->id)
-            ->whereIn('roles.slug', $roles)
-            ->exists();
-
-            return $userRoles;
+        return $this->belongsToMany(Role::class)->withTimestamps();
     }
+
+
 }

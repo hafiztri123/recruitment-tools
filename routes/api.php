@@ -24,12 +24,7 @@ Route::get('/user', function (Request $request) {
     ];
 })->middleware('auth:sanctum');
 Route::middleware('guest')->prefix('/v1')->group(function(){
-    Route::post('/login', [AuthController::class, 'Login']);
-    Route::post('/register', [AuthController::class, 'Register']);
+    Route::post('/register/{department_id}', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
 });
 
-Route::prefix('/v1')->middleware('auth:sanctum')->group(function(){
-    Route::put('/assign/hr/{user_id}', [HeadOfHRController::class, 'AssignHR']);
-    Route::post('/create/recruitment', [RecruitmentBatchController::class, 'CreateRecruitmentBatches']);
-    Route::post('/logout', [AuthController::class, 'Logout']);
-});
