@@ -2,14 +2,11 @@
 
 namespace App\Providers;
 
-use App\Policies\UserPolicy;
-use App\Repositories\DepartmentRepositoryInterface;
-use App\Repositories\Implementation\EloquentDepartmentRepository;
-use App\Repositories\Implementation\EloquentUserRepository;
-use App\Repositories\UserRepositoryInterface;
-use App\Services\UserServiceInterface;
+use App\Repositories\DepartmentRepository;
+use App\Repositories\UserRepository;
 use Illuminate\Support\ServiceProvider;
-use App\Services\Implementation\UserService;
+use App\Services\Implementation\UserServiceImpl;
+use App\Services\UserService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -18,9 +15,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(UserServiceInterface::class, UserService::class);
-        $this->app->bind(DepartmentRepositoryInterface::class, EloquentDepartmentRepository::class);
-        $this->app->bind(UserRepositoryInterface::class, EloquentUserRepository::class);
+        $this->app->bind(UserService::class, UserServiceImpl::class);
+        $this->app->bind(DepartmentRepository::class, DepartmentRepository::class);
+        $this->app->bind(UserRepository::class, UserRepository::class);
     }
 
     /**
