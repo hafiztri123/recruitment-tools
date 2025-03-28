@@ -20,7 +20,7 @@ return new class extends Migration
             $table->enum('status', ['pending', 'in_progress', 'completed', 'failed'])->default('pending');
             $table->dateTime('scheduled_at');
             $table->dateTime('completed_at');
-            $table->text('feddback');
+            $table->text('feedback');
             $table->boolean('passed');
             $table->text('rejection_reason');
             $table->timestamps();

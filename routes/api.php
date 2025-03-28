@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CandidateController;
 use App\Http\Controllers\HeadOfHRController;
 use App\Http\Controllers\RecruitmentBatchController;
 use Illuminate\Http\Request;
@@ -13,6 +14,8 @@ Route::middleware('guest')->prefix('/v1')->group(function(){
 });
 
 Route::middleware('auth:sanctum')->prefix('/v1')->group(function(){
-    Route::post('/recruitment/create/{position_id}', [RecruitmentBatchController::class, 'createRecruitmentBatch']);
+    Route::post('/recruitments/create/{position_id}', [RecruitmentBatchController::class, 'createRecruitmentBatch']);
+    Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/candidates/create/{batch_id}', [CandidateController::class, 'createCandidate']);
 });
 

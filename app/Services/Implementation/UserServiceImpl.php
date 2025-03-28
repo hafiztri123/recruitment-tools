@@ -4,6 +4,7 @@ namespace App\Services\Implementation;
 
 use App\Http\Requests\CreateUser;
 use App\Http\Requests\LoginRequest;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Repositories\DepartmentRepository;
 use App\Repositories\RoleRepository;
@@ -63,5 +64,10 @@ class UserServiceImpl implements UserService
         $roleID = $this->roleRepository->findRoleIDBySlug(slug: $slug);
         $user->roles()->attach(ids: $roleID);
     }
+
+    public function getMe(): UserResource
+    {
+        $user = $this->userRepository->findMe();
+        return new UserResource($user);
+    }
 }
-    

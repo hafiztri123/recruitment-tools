@@ -37,6 +37,12 @@ class AuthController extends Controller
         return (new ApiResponderService)->successResponse('Login', Response::HTTP_OK, ['token' => $token]);
     }
 
+    public function me()
+    {
+        return (new ApiResponderService)->successResponse('Me', Response::HTTP_OK, ['user' => $this->userService->getMe()]);
+
+    }
+
 
 
 }

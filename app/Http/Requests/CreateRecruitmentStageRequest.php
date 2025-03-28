@@ -4,14 +4,14 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class CreateRecruitmentBatchRequest extends FormRequest
+class CreateRecruitmentStageRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return true;
+        return false;
     }
 
     /**
@@ -23,10 +23,8 @@ class CreateRecruitmentBatchRequest extends FormRequest
     {
         return [
             'name' => ['string', 'max:255', 'required'],
-            'start_date' => ['date', 'after_or_equal:now()', 'required'],
-            'end_date' => ['date', 'after_or_equal:start_date', 'sometimes'],
-            'status' => ['string', 'in:active,completed,cancelled', 'sometimes'],
-            'description' => ['string', 'sometimes']
+            'order' => ['integer', 'required'],
+            'is_active' => ['boolean', 'required'],
         ];
     }
 }

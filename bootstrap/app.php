@@ -13,6 +13,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -88,7 +89,11 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
-
+        $exceptions->render(function(ConflictHttpException $e, Request $request){
+            if($request->is(config('constants.ROUTE_API_WILDCARD'))){
+                return (new ApiResponderService)->failResponse(message: $e->getMessage(), statusCode: 409);
+            }
+        });
 
         $exceptions->render(function(\Exception $e, Request $request){
             if($request->is(config('constants.ROUTE_API_WILDCARD'))){

@@ -12,4 +12,10 @@ class RecruitmentBatchRepositoryImpl implements RecruitmentBatchRepository
         $recruitmentBatch->saveOrFail();
         return $recruitmentBatch->id;
     }
+
+    public function recruitmentBatchExistsByID(int $id): bool
+    {
+        return RecruitmentBatch::where('id', $id)->exists();
+
+    }
 }
