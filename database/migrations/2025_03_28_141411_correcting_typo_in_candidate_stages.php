@@ -11,9 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('candidate_stages', function (Blueprint $table) {
-            $table->renameColumn('feddback', 'feedback');
-        });
+
     }
 
     /**
