@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CreateCandidateRequest;
+use App\Http\Requests\CreateMultipleCandidatesRequest;
 use App\Models\Candidate;
 use App\Services\ApiResponderService;
 use App\Services\CandidateService;
-use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 
@@ -20,8 +20,17 @@ class CandidateController extends Controller
     {
             Gate::authorize('create', Candidate::class);
             $batchID = $request->route('batch_id');
-            $this->candidateService->createCandidate(request: $request, batchID: $batchID);
+            $candidateData = $request->validated();
+            $this->candidateService->createCandidate(candidateData: $candidateData, batchID: $batchID);
             return (new ApiResponderService)->successResponse('create candidate', Response::HTTP_CREATED);
+    }
+
+    public function createCandidates(CreateMultipleCandidatesRequest $request)
+    {
+        Gate::authorize('create', Candidate::class);
+        $batchID = $request->route('batch_id');
+        $jobsBatchID = $this->candidateService->createCandidates(request: $request, batchID: $batchID);
+        return (new ApiResponderService)->successResponse('candidates creation jobs accepted', Response::HTTP_ACCEPTED, ['jobs_batch_id' => $jobsBatchID]);
     }
 
 

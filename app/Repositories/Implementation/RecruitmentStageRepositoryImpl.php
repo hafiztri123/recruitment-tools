@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Implementation;
 
+use App\Models\CandidateStage;
 use App\Models\RecruitmentStage;
 use App\Repositories\RecruitmentStageRepository;
 
@@ -22,4 +23,6 @@ class RecruitmentStageRepositoryImpl implements RecruitmentStageRepository
     {
         return RecruitmentStage::where('order', $order)->exists();
     }
+
+
 }

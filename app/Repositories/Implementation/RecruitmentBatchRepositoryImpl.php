@@ -18,4 +18,9 @@ class RecruitmentBatchRepositoryImpl implements RecruitmentBatchRepository
         return RecruitmentBatch::where('id', $id)->exists();
 
     }
+
+    public function findRecruitmentBatchByID(int $id): RecruitmentBatch
+    {
+        return RecruitmentBatch::where('id', $id)->firstOrFail();
+    }
 }

@@ -7,11 +7,15 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Resend\Laravel\Facades\Resend;
 
-class CreateCandidateSendEmail
+class CreateCandidateSendEmail implements ShouldQueue
 {
     /**
      * Create the event listener.
      */
+
+    public $tries = 3;
+    public $backoff = 60;
+
     public function __construct()
     {
         //
@@ -22,13 +26,13 @@ class CreateCandidateSendEmail
      */
     public function handle(CandidateCreated $event): void
     {
-        $html = view('emails.candidate_welcome', ['candidate' => $event->candidate])->render();
+        // $html = view('emails.candidate_welcome', ['candidate' => $event->candidate])->render();
 
-        Resend::emails()->send([
-            'from' => 'Hafizh <hafizh@resend.dev>',
-            'to' => [$event->candidate->email],
-            'subject' => 'Hello world',
-            'html' => $html
-        ]);
+        // Resend::emails()->send([
+        //     'from' => 'Hafizh <hafizh@resend.dev>',
+        //     'to' => [$event->candidate->email],
+        //     'subject' => 'Hello world',
+        //     'html' => $html
+        // ]);
     }
 }

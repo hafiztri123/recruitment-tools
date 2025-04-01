@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Events\CandidateNextStageCreated;
+use App\Listeners\CreateCandidateNextStageProgress;
 use App\Models\RecruitmentBatch;
 use App\Models\User;
 use App\Repositories\CandidateProgressRepository;
@@ -28,13 +30,16 @@ use App\Services\CandidateStageService;
 use App\Services\Implementation\CandidateProgressServiceImpl;
 use App\Services\Implementation\CandidateServiceImpl;
 use App\Services\Implementation\CandidateStageServiceImpl;
+use App\Services\Implementation\JobBatchServiceImpl;
 use App\Services\Implementation\RecruitmentBatchServiceImpl;
 use App\Services\Implementation\RecruitmentStageServiceImpl;
 use Illuminate\Support\ServiceProvider;
 use App\Services\Implementation\UserServiceImpl;
+use App\Services\JobBatchService;
 use App\Services\RecruitmentBatchService;
 use App\Services\RecruitmentStageService;
 use App\Services\UserService;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 
 class AppServiceProvider extends ServiceProvider
@@ -62,6 +67,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(CandidateStageService::class, CandidateStageServiceImpl::class);
         $this->app->bind(RecruitmentStageService::class, RecruitmentStageServiceImpl::class);
         $this->app->bind(CandidateProgressService::class, CandidateProgressServiceImpl::class);
+        $this->app->bind(JobBatchService::class, JobBatchServiceImpl::class);
     }
 
     /**
@@ -76,6 +82,7 @@ class AppServiceProvider extends ServiceProvider
 
             return null;
         });
+
 
 
     }

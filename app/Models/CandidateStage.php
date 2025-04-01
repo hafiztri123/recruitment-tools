@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CandidateStage extends Model
 {
@@ -14,4 +15,11 @@ class CandidateStage extends Model
         'passed',
         'rejection_reason'
     ];
+
+    public function recruitmentStage(): BelongsTo
+    {
+        return $this->belongsTo(RecruitmentStage::class, 'stage_id', 'id');
+
+
+    }
 }

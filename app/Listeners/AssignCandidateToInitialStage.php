@@ -10,11 +10,16 @@ use App\Services\CandidateStageService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class AssignCandidateToInitialStage
+class AssignCandidateToInitialStage implements ShouldQueue
 {
+
     /**
      * Create the event listener.
      */
+
+     public $tries = 3;
+     public $backoff = 60;
+
     public function __construct(
         private CandidateProgressService $candidateProgressService,
         private CandidateStageService $candidateStageService
@@ -25,7 +30,9 @@ class AssignCandidateToInitialStage
      */
     public function handle(CandidateCreated $event): void
     {
-        $candidateStageID = $this->candidateStageService->createInitialCandidateStage();
+        $FIRST_STAGE = 1;
+
+        $candidateStageID = $this->candidateStageService->createCandidateStage($FIRST_STAGE);
         $this->candidateProgressService->createCandidateProgress(
             candidateID: $event->candidate->id,
             recruitmentBatchID: $event->batchID,

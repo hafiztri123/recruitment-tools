@@ -11,4 +11,9 @@ class PositionRepositoryImpl implements PositionRepository
     {
         return Position::where('id', $positionID)->exists();
     }
+
+    public function findByID(int $positionID): Position
+    {
+        return Position::where('id', $positionID)->firstOrFail();
+    }
 }

@@ -18,4 +18,16 @@ class CandidateStageRepositoryImpl implements CandidateStageRepository
         return $candidateStage->id;
     }
 
+    public function updateCandidateStage(CandidateStage $candidateStage, array $data): void
+    {
+        $candidateStage->updateOrFail($data);
+
+    }
+
+
+    public function findById(int $id): CandidateStage
+    {
+        return CandidateStage::where('id', $id)->firstOrFail();
+    }
+
 }

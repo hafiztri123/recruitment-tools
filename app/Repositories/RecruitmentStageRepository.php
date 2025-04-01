@@ -3,6 +3,7 @@
 
 namespace App\Repositories;
 
+use App\Models\CandidateStage;
 use App\Models\RecruitmentStage;
 
 interface RecruitmentStageRepository
