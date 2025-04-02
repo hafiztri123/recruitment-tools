@@ -1,6 +1,6 @@
 <?php
 
-use App\Services\ApiResponderService;
+use App\Utils\ApiResponderService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\MassAssignmentException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;

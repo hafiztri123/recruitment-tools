@@ -2,9 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\RecruitmentStage;
+use App\Domain\RecruitmentStage\Models\RecruitmentStage;
 use Carbon\Carbon;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class RecruitmentStageSeeder extends Seeder

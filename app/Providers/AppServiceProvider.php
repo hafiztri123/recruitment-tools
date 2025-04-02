@@ -2,44 +2,52 @@
 
 namespace App\Providers;
 
-use App\Events\CandidateNextStageCreated;
-use App\Listeners\CreateCandidateNextStageProgress;
-use App\Models\RecruitmentBatch;
-use App\Models\User;
-use App\Repositories\CandidateProgressRepository;
-use App\Repositories\CandidateRepository;
-use App\Repositories\CandidateStageRepository;
-use App\Repositories\DepartmentRepository;
-use App\Repositories\Implementation\CandidateProgressRepositoryImpl;
-use App\Repositories\Implementation\CandidateRepositoryImpl;
-use App\Repositories\Implementation\CandidateStageRepositoryImpl;
-use App\Repositories\Implementation\DepartmentRepositoryImpl;
-use App\Repositories\Implementation\PositionRepositoryImpl;
-use App\Repositories\Implementation\RecruitmentBatchRepositoryImpl;
-use App\Repositories\Implementation\RecruitmentStageRepositoryImpl;
-use App\Repositories\Implementation\RoleRepositoryImpl;
-use App\Repositories\Implementation\UserRepositoryImpl;
-use App\Repositories\PositionRepository;
-use App\Repositories\RecruitmentBatchRepository;
-use App\Repositories\RecruitmentStageRepository;
-use App\Repositories\RoleRepository;
-use App\Repositories\UserRepository;
-use App\Services\CandidateProgressService;
-use App\Services\CandidateService;
-use App\Services\CandidateStageService;
-use App\Services\Implementation\CandidateProgressServiceImpl;
-use App\Services\Implementation\CandidateServiceImpl;
-use App\Services\Implementation\CandidateStageServiceImpl;
-use App\Services\Implementation\JobBatchServiceImpl;
-use App\Services\Implementation\RecruitmentBatchServiceImpl;
-use App\Services\Implementation\RecruitmentStageServiceImpl;
-use Illuminate\Support\ServiceProvider;
-use App\Services\Implementation\UserServiceImpl;
-use App\Services\JobBatchService;
-use App\Services\RecruitmentBatchService;
-use App\Services\RecruitmentStageService;
-use App\Services\UserService;
+use App\Domain\Candidate\Events\CandidateCreated;
+use App\Domain\Candidate\Interfaces\CandidateRepositoryInterface;
+use App\Domain\Candidate\Interfaces\CandidateServiceInterface;
+use App\Domain\Candidate\Listeners\AssignCandidateToInitialStage;
+use App\Domain\Candidate\Listeners\SendEmailToCandidate;
+use App\Domain\Candidate\Models\Candidate;
+use App\Domain\Candidate\Policies\CandidatePolicy;
+use App\Domain\Candidate\Repositories\EloquentCandidateRepository;
+use App\Domain\Candidate\Services\CandidateService;
+use App\Domain\CandidateProgress\Interfaces\CandidateProgressRepositoryInterface;
+use App\Domain\CandidateProgress\Interfaces\CandidateProgressServiceInterface;
+use App\Domain\CandidateProgress\Repositories\EloquentCandidateProgressRepository;
+use App\Domain\CandidateProgress\Services\CandidateProgressService;
+use App\Domain\CandidateStage\Events\CandidateNextStageCreated;
+use App\Domain\CandidateStage\Events\CandidateStageUpdated;
+use App\Domain\CandidateStage\Interfaces\CandidateStageRepositoryInterface;
+use App\Domain\CandidateStage\Interfaces\CandidateStageServiceInterface;
+use App\Domain\CandidateStage\Listeners\CreateCandidateNextProgress;
+use App\Domain\CandidateStage\Listeners\CreateCandidateNextStage;
+use App\Domain\CandidateStage\Repositories\EloquentCandidateStageRepository;
+use App\Domain\CandidateStage\Services\CandidateStageService;
+use App\Domain\Department\Interfaces\DepartmentRepositoryInterface;
+use App\Domain\Department\Repositories\EloquentDepartmentRepository;
+use App\Domain\Position\Interfaces\PositionRepositoryInterface;
+use App\Domain\Position\Repositories\EloquentPositionRepository;
+use App\Domain\RecruitmentBatch\Interfaces\RecruitmentBatchRepositoryInterface;
+use App\Domain\RecruitmentBatch\Interfaces\RecruitmentBatchServiceInterface;
+use App\Domain\RecruitmentBatch\Models\RecruitmentBatch;
+use App\Domain\RecruitmentBatch\Policies\RecruitmentBatchPolicy;
+use App\Domain\RecruitmentBatch\Repositories\EloquentRecruitmentBatchRepository;
+use App\Domain\RecruitmentBatch\Services\RecruitmentBatchService;
+use App\Domain\RecruitmentStage\Interfaces\RecruitmentStageRepositoryInterface;
+use App\Domain\RecruitmentStage\Interfaces\RecruitmentStageServiceInterface;
+use App\Domain\RecruitmentStage\Repositories\EloquentRecruitmentStageRepository;
+use App\Domain\RecruitmentStage\Services\RecruitmentStageService;
+use App\Domain\Role\Interfaces\RoleRepositoryInterface;
+use App\Domain\Role\Repositories\EloquentRoleRepository;
+use App\Domain\User\Interfaces\UserRepositoryInterface;
+use App\Domain\User\Interfaces\UserServiceInterface;
+use App\Domain\User\Models\User;
+use App\Domain\User\Repositories\EloquentUserRepository;
+use App\Domain\User\Services\UserService;
+use App\Utils\Implementation\JobBatchService;
+use App\Utils\JobBatchServiceInterface;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
 class AppServiceProvider extends ServiceProvider
@@ -50,24 +58,24 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         //REPOSITORY
-        $this->app->bind(DepartmentRepository::class, DepartmentRepositoryImpl::class);
-        $this->app->bind(UserRepository::class, UserRepositoryImpl::class);
-        $this->app->bind(RoleRepository::class, RoleRepositoryImpl::class);
-        $this->app->bind(RecruitmentBatchRepository::class, RecruitmentBatchRepositoryImpl::class);
-        $this->app->bind(PositionRepository::class, PositionRepositoryImpl::class);
-        $this->app->bind(CandidateRepository::class, CandidateRepositoryImpl::class);
-        $this->app->bind(CandidateStageRepository::class, CandidateStageRepositoryImpl::class);
-        $this->app->bind(CandidateProgressRepository::class, CandidateProgressRepositoryImpl::class);
-        $this->app->bind(RecruitmentStageRepository::class, RecruitmentStageRepositoryImpl::class);
+        $this->app->bind(DepartmentRepositoryInterface::class, EloquentDepartmentRepository::class);
+        $this->app->bind(UserRepositoryInterface::class, EloquentUserRepository::class);
+        $this->app->bind(RoleRepositoryInterface::class, EloquentRoleRepository::class);
+        $this->app->bind(RecruitmentBatchRepositoryInterface::class, EloquentRecruitmentBatchRepository::class);
+        $this->app->bind(PositionRepositoryInterface::class, EloquentPositionRepository::class);
+        $this->app->bind(CandidateRepositoryInterface::class, EloquentCandidateRepository::class);
+        $this->app->bind(CandidateStageRepositoryInterface::class, EloquentCandidateStageRepository::class);
+        $this->app->bind(CandidateProgressRepositoryInterface::class, EloquentCandidateProgressRepository::class);
+        $this->app->bind(RecruitmentStageRepositoryInterface::class, EloquentRecruitmentStageRepository::class);
 
         //SERVICES
-        $this->app->bind(UserService::class, UserServiceImpl::class);
-        $this->app->bind(RecruitmentBatchService::class, RecruitmentBatchServiceImpl::class);
-        $this->app->bind(CandidateService::class, CandidateServiceImpl::class);
-        $this->app->bind(CandidateStageService::class, CandidateStageServiceImpl::class);
-        $this->app->bind(RecruitmentStageService::class, RecruitmentStageServiceImpl::class);
-        $this->app->bind(CandidateProgressService::class, CandidateProgressServiceImpl::class);
-        $this->app->bind(JobBatchService::class, JobBatchServiceImpl::class);
+        $this->app->bind(UserServiceInterface::class, UserService::class);
+        $this->app->bind(RecruitmentBatchServiceInterface::class, RecruitmentBatchService::class);
+        $this->app->bind(CandidateServiceInterface::class, CandidateService::class);
+        $this->app->bind(CandidateStageServiceInterface::class, CandidateStageService::class);
+        $this->app->bind(RecruitmentStageServiceInterface::class, RecruitmentStageService::class);
+        $this->app->bind(CandidateProgressServiceInterface::class, CandidateProgressService::class);
+        $this->app->bind(JobBatchServiceInterface::class, JobBatchService::class);
     }
 
     /**
@@ -83,7 +91,37 @@ class AppServiceProvider extends ServiceProvider
             return null;
         });
 
+        //Policies registered
+        Gate::policy(
+            Candidate::class,
+            CandidatePolicy::class
+        );
 
+        Gate::policy(
+            RecruitmentBatch::class,
+            RecruitmentBatchPolicy::class
+        );
+
+        //Event registered
+        Event::listen(
+            CandidateCreated::class,
+            AssignCandidateToInitialStage::class
+        );
+
+        Event::listen(
+            CandidateCreated::class,
+            SendEmailToCandidate::class
+        );
+
+        Event::listen(
+            CandidateNextStageCreated::class,
+            CreateCandidateNextProgress::class,
+        );
+
+        Event::listen(
+            CandidateStageUpdated::class,
+            CreateCandidateNextStage::class
+        );
 
     }
 }
