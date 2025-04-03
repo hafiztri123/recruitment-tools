@@ -4,10 +4,13 @@ namespace App\Domain\Candidate\Policies;
 
 use App\Domain\Candidate\Models\Candidate;
 use App\Domain\User\Models\User;
+use App\Utils\PermissionService;
 use Illuminate\Auth\Access\Response;
 
 class CandidatePolicy
 {
+    public function __construct(private PermissionService $permissionService)
+    {}
     /**
      * Determine whether the user can view any models.
      */
@@ -29,7 +32,7 @@ class CandidatePolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasAnyRole(['hr', 'head-of-hr']);
+        return $this->permissionService->canManageRecruitment($user);
     }
 
     /**

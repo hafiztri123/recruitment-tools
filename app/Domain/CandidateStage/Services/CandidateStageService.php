@@ -8,6 +8,7 @@ use App\Domain\CandidateProgress\Interfaces\CandidateProgressRepositoryInterface
 use App\Domain\CandidateStage\Events\CandidateStageUpdated;
 use App\Domain\CandidateStage\Interfaces\CandidateStageRepositoryInterface;
 use App\Domain\CandidateStage\Interfaces\CandidateStageServiceInterface;
+use App\Domain\CandidateStage\Jobs\RejectCandidateJob;
 use App\Domain\CandidateStage\Jobs\UpdateCandidateStageJob;
 use App\Domain\CandidateStage\Models\CandidateStage;
 use App\Domain\CandidateStage\Requests\CandidatesStageUpdateStatusRequest;
@@ -32,6 +33,7 @@ class CandidateStageService implements CandidateStageServiceInterface
     {
         $candidateStage = CandidateStage::make([
             'status' => 'pending',
+            'scheduled_at' => now(),
         ]);
 
         $candidateStage->stage_id = $this->recruitmentStageRepository->findByOrder(order: $order)->id;
@@ -43,26 +45,7 @@ class CandidateStageService implements CandidateStageServiceInterface
         int $recruitmentBatchID,
     ): void {
 
-        if(!$this->candidateRepository->candidateExistsByID(id: $candidateID)){
-            throw new ModelNotFoundException('Candidate not found', 404);
-        }
-
-        if (!$this->recruitmentBatchRepository->recruitmentBatchExistsByID(id: $recruitmentBatchID)){
-            throw new ModelNotFoundException('Recruitment batch not found', 404);
-        }
-
-        //collection
-        $candidateProgress = $this->candidateProgressRepository->findByCandidateIDAndRecruitmentBatchID(
-            candidateID: $candidateID,
-            recruitmentBatchID: $recruitmentBatchID
-        );
-
-        if($candidateProgress->isEmpty()){
-            throw new ModelNotFoundException('Candidate progress not found', 404);
-        }
-
-
-        $candidateStage = $this->candidateStageRepository->findById($candidateProgress->last()->candidate_stage_id);
+        $candidateStage = $this->getCandidateStage($candidateID, $recruitmentBatchID);
 
         $this->candidateStageRepository->updateCandidateStage(candidateStage: $candidateStage, data:[
             'status' => 'completed',
@@ -73,28 +56,78 @@ class CandidateStageService implements CandidateStageServiceInterface
         CandidateStageUpdated::dispatch($candidateStage, $recruitmentBatchID, $candidateID);
     }
 
-    public function moveCandidatesToNextStage(CandidatesStageUpdateStatusRequest $request, int $batchID): string
+    public function moveCandidatesToNextStage(CandidatesStageUpdateStatusRequest $request, int $batchID): array
     {
-        $jobs = collect($request->candidates)->map(function ($candidateID) use ($batchID){
+        $candidatesID = $request->candidates;
+
+        $moveToNextStagejobs = collect($candidatesID)->map(function ($candidateID) use ($batchID){
             return new UpdateCandidateStageJob(
                 candidateID: $candidateID,
                 batchID: $batchID
             );
         })->toArray();
 
-        $batch = Bus::batch($jobs)->dispatch();
+        $rejectedCandidates = $this->candidateProgressRepository->findByBatchIDAndExcludingByCandidateIds(batchID: $batchID, candidateIDs: $candidatesID);
 
-        return $batch->id;
+        $CandidateRejectionJobs = collect($rejectedCandidates)->map(function($rejectedCandidate) use ($batchID){
+            return new RejectCandidateJob(
+                candidateID: $rejectedCandidate->id,
+                batchID: $batchID
+            );
+        })->toArray();
 
+        $batchOfPassedCandidates = Bus::batch($moveToNextStagejobs)
+            ->allowFailures(false)
+            ->dispatch();
+
+        $batchOfRejectedCandidates = Bus::batch($CandidateRejectionJobs)
+            ->allowFailures(false)
+            ->dispatch();
+
+        return [
+            'batch_of_passed_candidates_id' => $batchOfPassedCandidates->id,
+            'batch_of_rejected_candidates_id' => $batchOfRejectedCandidates->id
+        ];
 
     }
 
+    public function rejectCandidates(
+        int $candidateID,
+        int $recruitmentBatchID
+    ):void
+    {
+        $candidateStage = $this->getCandidateStage($candidateID, $recruitmentBatchID);
 
+        $this->candidateStageRepository->updateCandidateStage(candidateStage: $candidateStage, data: [
+            'status' => 'failed',
+            'completed_at' => now(),
+            'passed' => false,
+        ]);
+    }
 
+    private function getCandidateStage(
+        int $candidateID,
+        int $recruitmentBatchID
+    ): CandidateStage {
+        if (!$this->candidateRepository->candidateExistsByID(id: $candidateID)) {
+            throw new ModelNotFoundException('Candidate not found', 404);
+        }
 
+        if (!$this->recruitmentBatchRepository->recruitmentBatchExistsByID(id: $recruitmentBatchID)) {
+            throw new ModelNotFoundException('Recruitment batch not found', 404);
+        }
 
+        $candidateProgress = $this->candidateProgressRepository->findByCandidateIDAndRecruitmentBatchID(
+                candidateID: $candidateID,
+                recruitmentBatchID: $recruitmentBatchID
+            );
 
+        if ($candidateProgress->isEmpty()) {
+            throw new ModelNotFoundException('Candidate progress not found', 404);
+        }
 
+        $candidateStage = $this->candidateStageRepository->findById($candidateProgress->last()->candidate_stage_id);
 
-
+        return $candidateStage;
+    }
 }

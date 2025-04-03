@@ -9,4 +9,5 @@ interface CandidateProgressRepositoryInterface
 {
     public function create(CandidateProgress $candidateProgress): void;
     public function findByCandidateIDAndRecruitmentBatchID(int $candidateID, int $recruitmentBatchID): Collection;
+    public function findByBatchIDAndExcludingByCandidateIds(int $batchID, array $candidateIDs);
 }

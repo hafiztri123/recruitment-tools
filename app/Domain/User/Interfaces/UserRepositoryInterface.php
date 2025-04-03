@@ -9,4 +9,5 @@ interface UserRepositoryInterface
     public function create(User $user): void;
     public function findByEmail(string $email): User;
     public function findMe(): User;
+    public function existsById(int $id): bool;
 }

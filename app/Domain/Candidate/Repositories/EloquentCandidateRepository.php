@@ -4,6 +4,7 @@ namespace App\Domain\Candidate\Repositories;
 
 use App\Domain\Candidate\Interfaces\CandidateRepositoryInterface;
 use App\Domain\Candidate\Models\Candidate;
+use Illuminate\Database\Eloquent\Collection;
 
 class EloquentCandidateRepository implements CandidateRepositoryInterface
 {
@@ -16,4 +17,6 @@ class EloquentCandidateRepository implements CandidateRepositoryInterface
     {
         return Candidate::where('id', $id)->exists();
     }
+
+
 }

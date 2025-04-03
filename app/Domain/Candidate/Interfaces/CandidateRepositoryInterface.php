@@ -3,6 +3,7 @@
 namespace App\Domain\Candidate\Interfaces;
 
 use App\Domain\Candidate\Models\Candidate;
+use Illuminate\Database\Eloquent\Collection;
 
 interface CandidateRepositoryInterface
 {

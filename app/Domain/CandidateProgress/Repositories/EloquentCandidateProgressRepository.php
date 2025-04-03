@@ -29,4 +29,18 @@ class EloquentCandidateProgressRepository implements CandidateProgressRepository
         return $results;
     }
 
+    public function findByBatchIDAndExcludingByCandidateIds(int $batchID, array $candidateIDs): Collection
+    {
+        $results =
+            CandidateProgress::
+            where('recruitment_batch_id', $batchID)->
+            whereNotIn('candidate_id', $candidateIDs)->get();
+        if ($results->isEmpty()){
+            throw new ModelNotFoundException('Candidate progress not found', 404);
+        }
+
+        return $results;
+
+    }
+
 }

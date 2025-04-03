@@ -22,4 +22,9 @@ class EloquentUserRepository implements UserRepositoryInterface
     {
         return User::with('roles')->find(Auth::id());
     }
+
+    public function existsById(int $id): bool
+    {
+        return User::where('id', $id)->exists();
+    }
 }

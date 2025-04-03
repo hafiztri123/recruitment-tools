@@ -25,6 +25,18 @@ use App\Domain\CandidateStage\Repositories\EloquentCandidateStageRepository;
 use App\Domain\CandidateStage\Services\CandidateStageService;
 use App\Domain\Department\Interfaces\DepartmentRepositoryInterface;
 use App\Domain\Department\Repositories\EloquentDepartmentRepository;
+use App\Domain\Interview\Interfaces\InterviewRepositoryInterface;
+use App\Domain\Interview\Interfaces\InterviewServiceInterface;
+use App\Domain\Interview\Models\Interview;
+use App\Domain\Interview\Models\Interviewer;
+use App\Domain\Interview\Policies\InterviewPolicy;
+use App\Domain\Interview\Repositories\EloquentInterviewRepository;
+use App\Domain\Interview\Services\InterviewService;
+use App\Domain\Interviewer\Interfaces\InterviewerRepositoryInterface;
+use App\Domain\Interviewer\Interfaces\InterviewerServiceInterface;
+use App\Domain\Interviewer\Policies\InterviewerPolicy;
+use App\Domain\Interviewer\Repositories\EloquentInterviewerRepository;
+use App\Domain\Interviewer\Services\InterviewerService;
 use App\Domain\Position\Interfaces\PositionRepositoryInterface;
 use App\Domain\Position\Repositories\EloquentPositionRepository;
 use App\Domain\RecruitmentBatch\Interfaces\RecruitmentBatchRepositoryInterface;
@@ -46,6 +58,7 @@ use App\Domain\User\Repositories\EloquentUserRepository;
 use App\Domain\User\Services\UserService;
 use App\Utils\Implementation\JobBatchService;
 use App\Utils\JobBatchServiceInterface;
+use App\Utils\PermissionService;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Gate;
@@ -67,6 +80,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(CandidateStageRepositoryInterface::class, EloquentCandidateStageRepository::class);
         $this->app->bind(CandidateProgressRepositoryInterface::class, EloquentCandidateProgressRepository::class);
         $this->app->bind(RecruitmentStageRepositoryInterface::class, EloquentRecruitmentStageRepository::class);
+        $this->app->bind(InterviewRepositoryInterface::class, EloquentInterviewRepository::class);
+        $this->app->bind(InterviewerRepositoryInterface::class, EloquentInterviewerRepository::class);
+
 
         //SERVICES
         $this->app->bind(UserServiceInterface::class, UserService::class);
@@ -76,6 +92,13 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(RecruitmentStageServiceInterface::class, RecruitmentStageService::class);
         $this->app->bind(CandidateProgressServiceInterface::class, CandidateProgressService::class);
         $this->app->bind(JobBatchServiceInterface::class, JobBatchService::class);
+        $this->app->bind(InterviewServiceInterface::class, InterviewService::class);
+        $this->app->bind(InterviewerServiceInterface::class, InterviewerService::class);
+
+
+        $this->app->singleton(PermissionService::class, function ($app){
+            return new PermissionService();
+        });
     }
 
     /**
@@ -100,6 +123,16 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(
             RecruitmentBatch::class,
             RecruitmentBatchPolicy::class
+        );
+
+        Gate::policy(
+            Interview::class,
+            InterviewPolicy::class
+        );
+
+        Gate::policy(
+            Interviewer::class,
+            InterviewerPolicy::class
         );
 
         //Event registered
