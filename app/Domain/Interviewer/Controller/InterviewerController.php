@@ -6,6 +6,7 @@ use App\Domain\Interview\Models\Interviewer;
 use App\Domain\Interviewer\Interfaces\InterviewerServiceInterface;
 use App\Domain\Interviewer\Requests\CreateInterviewerRequest;
 use App\Domain\Interviewer\Requests\CreateMultipleInterviewerRequest;
+use App\Domain\Interviewer\Requests\InterviewerFillFeedbackRequest;
 use App\Utils\ApiResponderService;
 use App\Utils\Http\Controllers\Controller;
 use Illuminate\Http\Response;
@@ -43,4 +44,17 @@ class InterviewerController extends Controller
             'job_id' => $jobID
         ]);
     }
+
+    public function fillInterviewerFeedbackForm(InterviewerFillFeedbackRequest $request)
+    {
+        Gate::authorize('update', Interviewer::class);
+        $interviewerData = $request->validated();
+        $interviewerData['interview_id'] = $request->route('interview_id');
+
+        $this->interviewerService->interviewerFillFeedback(data: $interviewerData);
+
+        return (new ApiResponderService)->successResponse('Interviewer feedback filled', Response::HTTP_OK);
+    }
+
+
 }

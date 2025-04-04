@@ -10,4 +10,9 @@ class PermissionService
     {
         return $user->hasAnyRole(slugs: ['hr', 'head-of-hr']);
     }
+
+    public function canFillInterviewerFeedback(): bool
+    {
+        return true;
+    }
 }

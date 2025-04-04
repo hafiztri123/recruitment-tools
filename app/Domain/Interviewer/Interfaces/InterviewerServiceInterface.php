@@ -7,6 +7,7 @@ interface InterviewerServiceInterface
 {
     public function assignInterviewer(array $data): void;
     public function assignInterviewers(array $multipleData): string;
+    public function interviewerFillFeedback(array $data): void;
 }
 
 

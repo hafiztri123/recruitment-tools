@@ -14,4 +14,9 @@ class InterviewerPolicy
     {
         return $this->permissionService->canManageRecruitment($user);
     }
+
+    public function update(User $user): bool
+    {
+        return $this->permissionService->canFillInterviewerFeedback();
+    }
 }

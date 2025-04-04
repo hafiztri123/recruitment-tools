@@ -22,8 +22,9 @@ Route::middleware('auth:sanctum')->prefix('/v1')->group(function(){
     Route::post('/candidates/create/{batch_id}', [CandidateController::class, 'createCandidate']);
     Route::get('/candidates/jobs/{job_batch_id}', [JobBatchController::class, 'jobBatchStatus']);
     Route::patch('/candidates/next_stage/{recruitment_batch_id}', [CandidateStageController::class, 'moveCandidateStageToNextStep']);
-    Route::post('/interviews/interviewers/batch/{interview_id}', [InterviewerController::class, 'createInterviewers']);
-    Route::post('/interviews/interviewers/{interview_id}/{user_id}', [InterviewerController::class, 'createInterviewer']);
+    Route::post('/interviewers/{interview_id}/feedback', [InterviewerController::class, 'fillInterviewerFeedbackForm']);
+    Route::post('/interviewers/batch/{interview_id}', [InterviewerController::class, 'createInterviewers']);
+    Route::post('/interviewers/{interview_id}/{user_id}', [InterviewerController::class, 'createInterviewer']);
     Route::post('/interviews/{candidate_stage_id}', [InterviewController::class, 'createInterview']);
 });
 

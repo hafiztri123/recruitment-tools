@@ -11,4 +11,11 @@ class EloquentInterviewerRepository implements InterviewerRepositoryInterface
     {
         $interviewer->saveOrFail();
     }
+
+    public function findByInterviewIdAndUserId(int $interviewId, int $userId): Interviewer
+    {
+        return Interviewer::where('interview_id', $interviewId)
+            ->where('user_id', $userId)
+            ->firstOrFail();
+    }
 }
