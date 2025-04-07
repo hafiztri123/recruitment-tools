@@ -14,8 +14,8 @@ class InterviewerFillFeedbackRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'feedback' => 'sometimes|string',
-            'rating' => 'sometimes|integer|between:1,10'
+            'feedback' => 'string|nullable',
+            'rating' => 'integer|between:1,10|nullable'
         ];
     }
 }

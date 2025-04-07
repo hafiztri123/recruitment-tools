@@ -2,11 +2,13 @@
 
 namespace App\Domain\Interviewer\Services;
 
+use App\Domain\Interview\Exceptions\InterviewNotFoundException;
 use App\Domain\Interview\Interfaces\InterviewRepositoryInterface;
 use App\Domain\Interview\Models\Interviewer;
 use App\Domain\Interviewer\Interfaces\InterviewerRepositoryInterface;
 use App\Domain\Interviewer\Interfaces\InterviewerServiceInterface;
 use App\Domain\Interviewer\Jobs\AssignUserAsInterviewer;
+use App\Domain\User\Exceptions\UserNotFoundException;
 use App\Domain\User\Interfaces\UserRepositoryInterface;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Auth;
@@ -25,11 +27,11 @@ class InterviewerService implements InterviewerServiceInterface
     public function assignInterviewer(array $data): void
     {
         if(!$this->interviewRepository->existsById(id: $data['interview_id'])){
-            throw new ModelNotFoundException('Interview not found', 404);
+            throw new InterviewNotFoundException(interviewId: $data['interview_id']);
         }
 
         if(!$this->userRepository->existsById(id: $data['user_id'])){
-            throw new ModelNotFoundException('User not found', 404);
+            throw new UserNotFoundException(userId: $data['user_id']);
         }
 
         $interviewer = Interviewer::make([

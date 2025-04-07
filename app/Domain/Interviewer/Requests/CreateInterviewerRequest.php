@@ -14,9 +14,9 @@ class CreateInterviewerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'feedback_submitted' => 'sometimes|boolean',
-            'feedback' => 'sometimes|string',
-            'rating' => 'sometimes|integer|between:1,5'
+            'feedback_submitted' => 'boolean|nullable',
+            'feedback' => 'string|nullable',
+            'rating' => 'integer|between:1,5|nullable'
         ];
     }
 }

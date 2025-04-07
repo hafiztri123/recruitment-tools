@@ -1,6 +1,6 @@
 <?php
 
-use App\Utils\ApiResponderService;
+use App\Shared\ApiResponderService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\MassAssignmentException;
@@ -54,17 +54,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
-        $exceptions->render(function(AuthenticationException $e, Request $request){
-            if ($request->is(config('constants.ROUTE_API_WILDCARD'))){
-                return (new ApiResponderService)->failResponse(message: $e->getMessage(), statusCode: Response::HTTP_UNAUTHORIZED);
-            }
-        });
 
-        $exceptions->render(function (NotFoundHttpException $e, Request $request){
-            if ($request->is(config('constants.ROUTE_API_WILDCARD'))){
-                return (new ApiResponderService)->failResponse(message: $e->getMessage(), statusCode: Response::HTTP_NOT_FOUND);
-            }
-        });
 
         $exceptions->render(function(QueryException $e, Request $request){
             if ($request->is(config('constants.ROUTE_API_WILDCARD'))){
@@ -78,11 +68,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
-        $exceptions->render(function(ModelNotFoundException $e, Request $request){
-            if($request->is(config('constants.ROUTE_API_WILDCARD'))){
-                return (new ApiResponderService)->failResponse(message: $e->getMessage(), statusCode: Response::HTTP_NOT_FOUND);
-            }
-        });
+
 
         $exceptions->render(function(ValidationException $e, Request $request){
             if($request->is(config('constants.ROUTE_API_WILDCARD'))){
@@ -96,15 +82,10 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
-        $exceptions->render(function(ConflictHttpException $e, Request $request){
-            if($request->is(config('constants.ROUTE_API_WILDCARD'))){
-                return (new ApiResponderService)->failResponse(message: $e->getMessage(), statusCode: 409);
-            }
-        });
 
         $exceptions->render(function(\Exception $e, Request $request){
             if($request->is(config('constants.ROUTE_API_WILDCARD'))){
-                return (new ApiResponderService)->failResponse(message: $e->getMessage(), statusCode: Response::HTTP_INTERNAL_SERVER_ERROR, errors: ['context' => $e->getTrace()]);
+                return (new ApiResponderService)->failResponse(message: $e->getMessage(), statusCode: $e->getCode() ?: RESPONSE::HTTP_INTERNAL_SERVER_ERROR, errors: ['context' => $e->getTrace()]);
             }
         });
 

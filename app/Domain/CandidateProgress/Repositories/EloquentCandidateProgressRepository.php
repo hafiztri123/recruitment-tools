@@ -3,10 +3,10 @@
 
 namespace App\Domain\CandidateProgress\Repositories;
 
+use App\Domain\CandidateProgress\Exceptions\CandidateProgressNotFoundException;
 use App\Domain\CandidateProgress\Interfaces\CandidateProgressRepositoryInterface;
 use App\Domain\CandidateProgress\Models\CandidateProgress;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class EloquentCandidateProgressRepository implements CandidateProgressRepositoryInterface
 {
@@ -23,7 +23,7 @@ class EloquentCandidateProgressRepository implements CandidateProgressRepository
             ->get();
 
         if($results->isEmpty()){
-            throw new ModelNotFoundException('Candidate progress not found', 404);
+            throw new CandidateProgressNotFoundException();
         }
 
         return $results;
@@ -36,7 +36,7 @@ class EloquentCandidateProgressRepository implements CandidateProgressRepository
             where('recruitment_batch_id', $batchID)->
             whereNotIn('candidate_id', $candidateIDs)->get();
         if ($results->isEmpty()){
-            throw new ModelNotFoundException('Candidate progress not found', 404);
+            throw new CandidateProgressNotFoundException();
         }
 
         return $results;

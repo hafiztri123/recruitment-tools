@@ -6,8 +6,8 @@ use App\Domain\Candidate\Interfaces\CandidateServiceInterface;
 use App\Domain\Candidate\Models\Candidate;
 use App\Domain\Candidate\Requests\CreateCandidateRequest;
 use App\Domain\Candidate\Requests\CreateMultipleCandidatesRequest;
-use App\Utils\ApiResponderService;
-use App\Utils\Http\Controllers\Controller;
+use App\Shared\ApiResponderService;
+use App\Shared\Controllers\Controller;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 

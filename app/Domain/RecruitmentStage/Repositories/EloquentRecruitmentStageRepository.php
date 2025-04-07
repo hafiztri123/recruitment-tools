@@ -23,5 +23,10 @@ class EloquentRecruitmentStageRepository implements RecruitmentStageRepositoryIn
         return RecruitmentStage::where('order', $order)->exists();
     }
 
+    public function getTotalStages(): int
+    {
+        return RecruitmentStage::where('is_active', true)->count();
+    }
+
 
 }

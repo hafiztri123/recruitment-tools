@@ -3,7 +3,9 @@
 
 namespace App\Domain\CandidateStage\Services;
 
+use App\Domain\Candidate\Exceptions\CandidateNotFoundException;
 use App\Domain\Candidate\Interfaces\CandidateRepositoryInterface;
+use App\Domain\CandidateProgress\Exceptions\CandidateProgressNotFoundException;
 use App\Domain\CandidateProgress\Interfaces\CandidateProgressRepositoryInterface;
 use App\Domain\CandidateStage\Events\CandidateStageUpdated;
 use App\Domain\CandidateStage\Interfaces\CandidateStageRepositoryInterface;
@@ -12,6 +14,7 @@ use App\Domain\CandidateStage\Jobs\RejectCandidateJob;
 use App\Domain\CandidateStage\Jobs\UpdateCandidateStageJob;
 use App\Domain\CandidateStage\Models\CandidateStage;
 use App\Domain\CandidateStage\Requests\CandidatesStageUpdateStatusRequest;
+use App\Domain\RecruitmentBatch\Exceptions\RecruitmentBatchNotFoundException;
 use App\Domain\RecruitmentBatch\Interfaces\RecruitmentBatchRepositoryInterface;
 use App\Domain\RecruitmentStage\Interfaces\RecruitmentStageRepositoryInterface;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -110,11 +113,11 @@ class CandidateStageService implements CandidateStageServiceInterface
         int $recruitmentBatchID
     ): CandidateStage {
         if (!$this->candidateRepository->candidateExistsByID(id: $candidateID)) {
-            throw new ModelNotFoundException('Candidate not found', 404);
+            throw new CandidateNotFoundException(candidateId: $candidateID);
         }
 
         if (!$this->recruitmentBatchRepository->recruitmentBatchExistsByID(id: $recruitmentBatchID)) {
-            throw new ModelNotFoundException('Recruitment batch not found', 404);
+            throw new RecruitmentBatchNotFoundException(recruitmentBatchId: $recruitmentBatchID);
         }
 
         $candidateProgress = $this->candidateProgressRepository->findByCandidateIDAndRecruitmentBatchID(
@@ -123,7 +126,7 @@ class CandidateStageService implements CandidateStageServiceInterface
             );
 
         if ($candidateProgress->isEmpty()) {
-            throw new ModelNotFoundException('Candidate progress not found', 404);
+            throw new CandidateProgressNotFoundException(customMessage: "Candidate progress with candidate ID: $candidateID and recruitment batch ID: $recruitmentBatchID not found");
         }
 
         $candidateStage = $this->candidateStageRepository->findById($candidateProgress->last()->candidate_stage_id);

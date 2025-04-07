@@ -3,7 +3,7 @@
 namespace App\Domain\Interviewer\Policies;
 
 use App\Domain\User\Models\User;
-use App\Utils\PermissionService;
+use App\Shared\PermissionService;
 
 class InterviewerPolicy
 {

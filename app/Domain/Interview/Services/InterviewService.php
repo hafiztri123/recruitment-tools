@@ -2,6 +2,7 @@
 
 namespace App\Domain\Interview\Services;
 
+use App\Domain\CandidateStage\Exceptions\CandidateStageNotFoundException;
 use App\Domain\CandidateStage\Interfaces\CandidateStageRepositoryInterface;
 use App\Domain\Interview\Interfaces\InterviewRepositoryInterface;
 use App\Domain\Interview\Interfaces\InterviewServiceInterface;
@@ -19,7 +20,7 @@ class InterviewService implements InterviewServiceInterface
     public function createInterview(array $data): void
     {
         if(!$this->candidateStageRepository->candidateStageExistsByID(id: $data['candidate_stage_id'])){
-            throw new ModelNotFoundException('Candidate stage not found', 404);
+            throw new CandidateStageNotFoundException(candidateStageId: $data['candidate_stage_id']);
         }
 
         $interview = Interview::make([

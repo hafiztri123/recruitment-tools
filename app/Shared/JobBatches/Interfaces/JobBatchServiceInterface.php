@@ -1,7 +1,6 @@
 <?php
 
-namespace App\Utils;
-
+namespace App\Shared\JobBatches\Interfaces;
 
 interface JobBatchServiceInterface
 {

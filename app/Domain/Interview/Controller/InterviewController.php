@@ -5,8 +5,8 @@ namespace App\Domain\Interview\Controller;
 use App\Domain\Interview\Interfaces\InterviewServiceInterface;
 use App\Domain\Interview\Models\Interview;
 use App\Domain\Interview\Requests\CreateInterviewRequest;
-use App\Utils\ApiResponderService;
-use App\Utils\Http\Controllers\Controller;
+use App\Shared\ApiResponderService;
+use App\Shared\Controllers\Controller;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 

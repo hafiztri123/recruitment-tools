@@ -16,11 +16,17 @@ class CreateInterviewRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'scheduled_at' => 'required|date|after_or_equal:now()',
+            'scheduled_at' => [
+                'required',
+                'date',
+                'after_or_equal:now',
+                'before_or_equal:' . now()->addMonths(6)->format('Y-m-d H:i:s') 
+            ],
+
             'duration_minutes' => 'required|integer',
-            'location' => 'sometimes|string|max:255',
-            'meeting_link' => 'sometimes|string|max:255',
-            'notes' => 'sometimes|string|max:255',
+            'location' => 'nullable|string|max:255',
+            'meeting_link' => 'nullable|string|max:255',
+            'notes' => 'string|nullable|max:255',
         ];
     }
 }

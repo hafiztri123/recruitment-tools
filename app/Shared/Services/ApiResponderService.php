@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Utils;
+namespace App\Shared;
 
+use App\Shared\Traits\ApiResponder;
 
 class ApiResponderService
 {

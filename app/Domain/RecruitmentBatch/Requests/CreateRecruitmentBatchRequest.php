@@ -23,10 +23,20 @@ class CreateRecruitmentBatchRequest extends FormRequest
     {
         return [
             'name' => ['string', 'max:255', 'required'],
-            'start_date' => ['date', 'after_or_equal:now()', 'required'],
-            'end_date' => ['date', 'after_or_equal:start_date', 'sometimes'],
-            'status' => ['string', 'in:active,completed,cancelled', 'sometimes'],
-            'description' => ['string', 'sometimes']
+            'start_date' => [
+                'date',
+                'after_or_equal:now()',
+                'before_or_equal:' . now()->addYears(1)->format('Y-m-d'),
+                'required'
+            ],
+            'end_date' => [
+                'date',
+                'after_or_equal:start_date',
+                'nullable',
+                'before_or_equal:' . now()->addYears(1)->format('Y-m-d')
+            ],
+            'status' => ['string', 'in:active,completed,cancelled', 'nullable'],
+            'description' => ['string', 'nullable']
         ];
     }
 }

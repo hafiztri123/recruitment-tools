@@ -2,66 +2,28 @@
 
 namespace App\Providers;
 
-use App\Domain\Candidate\Events\CandidateCreated;
-use App\Domain\Candidate\Interfaces\CandidateRepositoryInterface;
+use App\Domain\Approval\Interfaces\ApprovalServiceInterface;
+use App\Domain\Approval\Services\ApprovalService;
 use App\Domain\Candidate\Interfaces\CandidateServiceInterface;
-use App\Domain\Candidate\Listeners\AssignCandidateToInitialStage;
-use App\Domain\Candidate\Listeners\SendEmailToCandidate;
-use App\Domain\Candidate\Models\Candidate;
-use App\Domain\Candidate\Policies\CandidatePolicy;
-use App\Domain\Candidate\Repositories\EloquentCandidateRepository;
 use App\Domain\Candidate\Services\CandidateService;
-use App\Domain\CandidateProgress\Interfaces\CandidateProgressRepositoryInterface;
 use App\Domain\CandidateProgress\Interfaces\CandidateProgressServiceInterface;
-use App\Domain\CandidateProgress\Repositories\EloquentCandidateProgressRepository;
 use App\Domain\CandidateProgress\Services\CandidateProgressService;
-use App\Domain\CandidateStage\Events\CandidateNextStageCreated;
-use App\Domain\CandidateStage\Events\CandidateStageUpdated;
-use App\Domain\CandidateStage\Interfaces\CandidateStageRepositoryInterface;
 use App\Domain\CandidateStage\Interfaces\CandidateStageServiceInterface;
-use App\Domain\CandidateStage\Listeners\CreateCandidateNextProgress;
-use App\Domain\CandidateStage\Listeners\CreateCandidateNextStage;
-use App\Domain\CandidateStage\Repositories\EloquentCandidateStageRepository;
 use App\Domain\CandidateStage\Services\CandidateStageService;
-use App\Domain\Department\Interfaces\DepartmentRepositoryInterface;
-use App\Domain\Department\Repositories\EloquentDepartmentRepository;
-use App\Domain\Interview\Interfaces\InterviewRepositoryInterface;
 use App\Domain\Interview\Interfaces\InterviewServiceInterface;
-use App\Domain\Interview\Models\Interview;
-use App\Domain\Interview\Models\Interviewer;
-use App\Domain\Interview\Policies\InterviewPolicy;
-use App\Domain\Interview\Repositories\EloquentInterviewRepository;
 use App\Domain\Interview\Services\InterviewService;
-use App\Domain\Interviewer\Interfaces\InterviewerRepositoryInterface;
 use App\Domain\Interviewer\Interfaces\InterviewerServiceInterface;
-use App\Domain\Interviewer\Policies\InterviewerPolicy;
-use App\Domain\Interviewer\Repositories\EloquentInterviewerRepository;
 use App\Domain\Interviewer\Services\InterviewerService;
-use App\Domain\Position\Interfaces\PositionRepositoryInterface;
-use App\Domain\Position\Repositories\EloquentPositionRepository;
-use App\Domain\RecruitmentBatch\Interfaces\RecruitmentBatchRepositoryInterface;
 use App\Domain\RecruitmentBatch\Interfaces\RecruitmentBatchServiceInterface;
-use App\Domain\RecruitmentBatch\Models\RecruitmentBatch;
-use App\Domain\RecruitmentBatch\Policies\RecruitmentBatchPolicy;
-use App\Domain\RecruitmentBatch\Repositories\EloquentRecruitmentBatchRepository;
 use App\Domain\RecruitmentBatch\Services\RecruitmentBatchService;
-use App\Domain\RecruitmentStage\Interfaces\RecruitmentStageRepositoryInterface;
 use App\Domain\RecruitmentStage\Interfaces\RecruitmentStageServiceInterface;
-use App\Domain\RecruitmentStage\Repositories\EloquentRecruitmentStageRepository;
 use App\Domain\RecruitmentStage\Services\RecruitmentStageService;
-use App\Domain\Role\Interfaces\RoleRepositoryInterface;
-use App\Domain\Role\Repositories\EloquentRoleRepository;
-use App\Domain\User\Interfaces\UserRepositoryInterface;
 use App\Domain\User\Interfaces\UserServiceInterface;
-use App\Domain\User\Models\User;
-use App\Domain\User\Repositories\EloquentUserRepository;
 use App\Domain\User\Services\UserService;
-use App\Utils\Implementation\JobBatchService;
-use App\Utils\JobBatchServiceInterface;
-use App\Utils\PermissionService;
-use Illuminate\Support\Facades\Event;
+use App\Shared\JobBatches\Interfaces\JobBatchServiceInterface;
+use App\Shared\JobBatches\Services\JobBatchService;
+use App\Shared\PermissionService;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Gate;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -70,21 +32,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //REPOSITORY
-        $this->app->bind(DepartmentRepositoryInterface::class, EloquentDepartmentRepository::class);
-        $this->app->bind(UserRepositoryInterface::class, EloquentUserRepository::class);
-        $this->app->bind(RoleRepositoryInterface::class, EloquentRoleRepository::class);
-        $this->app->bind(RecruitmentBatchRepositoryInterface::class, EloquentRecruitmentBatchRepository::class);
-        $this->app->bind(PositionRepositoryInterface::class, EloquentPositionRepository::class);
-        $this->app->bind(CandidateRepositoryInterface::class, EloquentCandidateRepository::class);
-        $this->app->bind(CandidateStageRepositoryInterface::class, EloquentCandidateStageRepository::class);
-        $this->app->bind(CandidateProgressRepositoryInterface::class, EloquentCandidateProgressRepository::class);
-        $this->app->bind(RecruitmentStageRepositoryInterface::class, EloquentRecruitmentStageRepository::class);
-        $this->app->bind(InterviewRepositoryInterface::class, EloquentInterviewRepository::class);
-        $this->app->bind(InterviewerRepositoryInterface::class, EloquentInterviewerRepository::class);
 
 
-        //SERVICES
         $this->app->bind(UserServiceInterface::class, UserService::class);
         $this->app->bind(RecruitmentBatchServiceInterface::class, RecruitmentBatchService::class);
         $this->app->bind(CandidateServiceInterface::class, CandidateService::class);
@@ -94,6 +43,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(JobBatchServiceInterface::class, JobBatchService::class);
         $this->app->bind(InterviewServiceInterface::class, InterviewService::class);
         $this->app->bind(InterviewerServiceInterface::class, InterviewerService::class);
+        $this->app->bind(ApprovalServiceInterface::class, ApprovalService::class);
 
 
         $this->app->singleton(PermissionService::class, function ($app){
@@ -106,55 +56,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Gate::before(function (User $user, string $ability){
-            if($user->hasRole(config('role.HEAD_OF_HR'))){
-                return true;
-            };
+        //Event
+        //polcies
 
-            return null;
-        });
 
-        //Policies registered
-        Gate::policy(
-            Candidate::class,
-            CandidatePolicy::class
-        );
-
-        Gate::policy(
-            RecruitmentBatch::class,
-            RecruitmentBatchPolicy::class
-        );
-
-        Gate::policy(
-            Interview::class,
-            InterviewPolicy::class
-        );
-
-        Gate::policy(
-            Interviewer::class,
-            InterviewerPolicy::class
-        );
-
-        //Event registered
-        Event::listen(
-            CandidateCreated::class,
-            AssignCandidateToInitialStage::class
-        );
-
-        Event::listen(
-            CandidateCreated::class,
-            SendEmailToCandidate::class
-        );
-
-        Event::listen(
-            CandidateNextStageCreated::class,
-            CreateCandidateNextProgress::class,
-        );
-
-        Event::listen(
-            CandidateStageUpdated::class,
-            CreateCandidateNextStage::class
-        );
 
     }
 }

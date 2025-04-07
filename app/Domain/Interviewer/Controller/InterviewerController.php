@@ -7,8 +7,8 @@ use App\Domain\Interviewer\Interfaces\InterviewerServiceInterface;
 use App\Domain\Interviewer\Requests\CreateInterviewerRequest;
 use App\Domain\Interviewer\Requests\CreateMultipleInterviewerRequest;
 use App\Domain\Interviewer\Requests\InterviewerFillFeedbackRequest;
-use App\Utils\ApiResponderService;
-use App\Utils\Http\Controllers\Controller;
+use App\Shared\ApiResponderService;
+use App\Shared\Controllers\Controller;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 

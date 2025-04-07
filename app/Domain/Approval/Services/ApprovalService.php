@@ -5,10 +5,12 @@ namespace App\Domain\Approval\Services;
 use App\Domain\Approval\Interfaces\ApprovalRepositoryInterface;
 use App\Domain\Approval\Interfaces\ApprovalServiceInterface;
 use App\Domain\Approval\Models\Approval;
+use App\Domain\Candidate\Exceptions\CandidateNotFoundException;
 use App\Domain\Candidate\Interfaces\CandidateRepositoryInterface;
+use App\Domain\User\Exceptions\UserNotFoundException;
 use App\Domain\User\Interfaces\UserRepositoryInterface;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Symfony\Component\HttpFoundation\Exception\BadRequestException;
+use App\Shared\Exceptions\BadRequestException;
+use Illuminate\Database\Eloquent\Collection;
 
 class ApprovalService implements ApprovalServiceInterface
 {
@@ -16,20 +18,17 @@ class ApprovalService implements ApprovalServiceInterface
         private ApprovalRepositoryInterface $approvalRepository,
         private CandidateRepositoryInterface $candidateRepository,
         private UserRepositoryInterface $userRepository
-    )
-    {
-
-    }
+    ) {}
 
     public function createApproval(array $data): void
     {
-        $this->approvalRequestValidation(data: $data);
-
+        $this->validateApprovalRequestData($data);
 
         $approval = Approval::make([
             'candidate_id' => $data['candidate_id'],
             'approver_id' => $data['approver_id'],
-            'status' => 'pending'
+            'status' => 'pending',
+            'comments' => $data['comments'] ?? null
         ]);
 
         $this->approvalRepository->save($approval);
@@ -37,49 +36,68 @@ class ApprovalService implements ApprovalServiceInterface
 
     public function updateApproval(array $data): void
     {
-        $this->approvalRequestValidation(data: $data);
+        $this->validateApprovalRequestData(data: $data);
 
         $approval = $this->approvalRepository->findByApproverIdAndCandidateIdAndStatusPending(
             approverId: $data['approver_id'],
             candidateId: $data['candidate_id']
         );
 
-        $updatedApproval = $this->approvalUpdateRequestValidation(approval: $approval, data: $data);
-        $this->approvalRepository->save(approval: $updatedApproval);
+        $approval->status = $data['status'];
+        $approval->comments = $data['comments'] ?? $approval->comments;
+        $approval->approved_at = now();
+
+        $this->approvalRepository->save(approval: $approval);
     }
 
-    private function approvalRequestValidation(array $data){
-        if (isset($data['candidate_id']) || isset($data['approver_id'])) {
-            throw new BadRequestException('bad request', 400);
+    public function getPendingApprovalsByApproverId(int $approverId): Collection
+    {
+        return $this->approvalRepository->findByApproverIdAndStatusPending(approverId: $approverId);
+    }
+
+    public function getApprovalsByCandidateId(int $candidateId): Collection
+    {
+        if (!$this->candidateRepository->candidateExistsByID(id: $candidateId)) {
+            throw new CandidateNotFoundException(candidateId: $candidateId);
         }
 
+        return $this->approvalRepository->findByCandidateIdAndStatusPending(candidateId: $candidateId);
+    }
+
+    public function checkIfCandidateHasAllApprovals(int $candidateId): bool
+    {
+        $pendingApprovals = $this->approvalRepository->findByCandidateIdAndStatusPending(candidateId: $candidateId);
+
+        return $pendingApprovals->isEmpty();
+    }
+
+    private function validateApprovalRequestData(array $data): void
+    {
+        if (!isset($data['candidate_id']) || !isset($data['approver_id'])) {
+            $errors = [];
+
+            if(!isset($data['candidate_id'])){
+                $errors['candidate_id'] = 'Candidate ID is missing';
+            }
+
+            if (!isset($data['approver_id'])) {
+                $errors['approver_id'] = 'Approver ID is missing';
+            }
+
+            if(!empty($errors)){
+                throw new BadRequestException('Missing required data', $errors);
+            }
+
+        }
 
         $candidateExists = $this->candidateRepository->candidateExistsByID(id: $data['candidate_id']);
-
         if (!$candidateExists) {
-            throw new ModelNotFoundException('Candidate not found', 404);
+            throw new CandidateNotFoundException(candidateId: $data['candidate_id']);
         }
 
         $approverExists = $this->userRepository->existsById(id: $data['approver_id']);
-
         if (!$approverExists) {
-            throw new ModelNotFoundException('Approver not found', 404);
+            throw new UserNotFoundException(userId: $data['approver_id'], customMessage: 'Approver not found');
         }
     }
-
-    private function approvalUpdateRequestValidation(Approval $approval, array $data): Approval
-    {
-        if(isset($data['status']) && $data['status'] !== 'pending'){
-            $approval->status = $data['status'];
-            $approval->approved_at = now();
-        }
-
-        if(isset($data['comments'])){
-            $approval->comments = $data['comments'];
-        }
-
-        return $approval;
-    }
-
-
 }

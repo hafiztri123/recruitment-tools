@@ -15,7 +15,7 @@ class CreateMultipleInterviewerRequest extends FormRequest
     {
         return [
             'interviewers' => 'required|array|min:1',
-            'interviewers.*'=> 'required|exists:users,id'
+            'interviewers.*'=> 'required|exists:users,id|integer'
         ];
     }
 }

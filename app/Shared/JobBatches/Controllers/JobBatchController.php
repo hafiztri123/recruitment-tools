@@ -1,9 +1,11 @@
 <?php
 
-namespace App\Utils\Http\Controllers;
 
-use App\Services\JobBatchServiceInterface;
-use App\Utils\ApiResponderService;
+namespace App\Shared\JobBatches\Controllers;
+
+use App\Shared\ApiResponderService;
+use App\Shared\Controllers\Controller;
+use App\Shared\JobBatches\Interfaces\JobBatchServiceInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 

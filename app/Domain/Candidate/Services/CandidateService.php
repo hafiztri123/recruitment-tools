@@ -9,8 +9,8 @@ use App\Domain\Candidate\Jobs\CreateCandidateJob;
 use App\Domain\Candidate\Models\Candidate;
 use App\Domain\Candidate\Requests\CreateMultipleCandidatesRequest;
 use App\Domain\Position\Interfaces\PositionRepositoryInterface;
+use App\Domain\RecruitmentBatch\Exceptions\RecruitmentBatchNotFoundException;
 use App\Domain\RecruitmentBatch\Interfaces\RecruitmentBatchRepositoryInterface;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Log;
 
@@ -29,7 +29,7 @@ class CandidateService implements CandidateServiceInterface
        $recruitmentBatchExists = $this->recruitmentBatchRepository->recruitmentBatchExistsByID(id: $batchID);
 
        if(!$recruitmentBatchExists){
-        throw new ModelNotFoundException('Recruitment batch not found', 404);
+        throw new RecruitmentBatchNotFoundException(recruitmentBatchId: $batchID);
        }
 
        $candidate = $this->makeCandidate(candidateData: $candidateData);

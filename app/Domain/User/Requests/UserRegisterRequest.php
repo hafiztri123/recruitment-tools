@@ -34,7 +34,8 @@ class UserRegisterRequest extends FormRequest
                 'string',
                 'email',
                 'required',
-                Rule::unique('users', 'email')->ignore($this->route('user_id'))
+                Rule::unique('users', 'email')->ignore($this->route('user_id')),
+                'max:255'
             ],
 
             'password' => [
@@ -45,6 +46,7 @@ class UserRegisterRequest extends FormRequest
                     ->letters()
                     ->symbols()
                     ->numbers(),
+                'max:64',
                 'required'
             ]
         ];

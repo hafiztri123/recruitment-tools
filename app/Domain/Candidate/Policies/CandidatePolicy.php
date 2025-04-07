@@ -4,7 +4,7 @@ namespace App\Domain\Candidate\Policies;
 
 use App\Domain\Candidate\Models\Candidate;
 use App\Domain\User\Models\User;
-use App\Utils\PermissionService;
+use App\Shared\PermissionService;
 use Illuminate\Auth\Access\Response;
 
 class CandidatePolicy

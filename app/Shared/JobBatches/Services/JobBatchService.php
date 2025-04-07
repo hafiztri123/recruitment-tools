@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Utils\Implementation;
+namespace App\Shared\JobBatches\Services;
 
-use App\Utils\JobBatchServiceInterface;
+use App\Shared\JobBatches\Interfaces\JobBatchServiceInterface;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Bus;
 

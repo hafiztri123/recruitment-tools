@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Approval\Controller\ApprovalController;
 use App\Domain\Candidate\Controllers\CandidateController;
 use App\Domain\CandidateStage\Controllers\CandidateStageController;
 use App\Domain\Interview\Controller\InterviewController;
@@ -10,21 +11,39 @@ use App\Domain\User\Controller\UserController;
 use App\Utils\Http\Controllers\JobBatchController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('guest')->prefix('/v1')->group(function(){
-    Route::post('/register/{department_id}', [UserAuthController::class, 'register']);
+// Auth routes
+Route::middleware('guest')->prefix('/v1')->group(function () {
+    Route::post('/departments/{department_id}/users', [UserAuthController::class, 'register']);
     Route::post('/login', [UserAuthController::class, 'login'])->name('login');
 });
 
-Route::middleware('auth:sanctum')->prefix('/v1')->group(function(){
-    Route::post('/recruitments/create/{position_id}', [RecruitmentBatchController::class, 'createRecruitmentBatch']);
+// Authenticated routes
+Route::middleware('auth:sanctum')->prefix('/v1')->group(function () {
+    // User routes
     Route::get('/me', [UserController::class, 'me']);
-    Route::post('/candidates/create/batch/{batch_id}', [CandidateController::class, 'createCandidates']);
-    Route::post('/candidates/create/{batch_id}', [CandidateController::class, 'createCandidate']);
-    Route::get('/candidates/jobs/{job_batch_id}', [JobBatchController::class, 'jobBatchStatus']);
-    Route::patch('/candidates/next_stage/{recruitment_batch_id}', [CandidateStageController::class, 'moveCandidateStageToNextStep']);
-    Route::post('/interviewers/{interview_id}/feedback', [InterviewerController::class, 'fillInterviewerFeedbackForm']);
-    Route::post('/interviewers/batch/{interview_id}', [InterviewerController::class, 'createInterviewers']);
-    Route::post('/interviewers/{interview_id}/{user_id}', [InterviewerController::class, 'createInterviewer']);
-    Route::post('/interviews/{candidate_stage_id}', [InterviewController::class, 'createInterview']);
-});
 
+    // Job batch status
+    Route::get('/job-batches/{job_batch_id}', [JobBatchController::class, 'jobBatchStatus']);
+
+    // Recruitment batch routes
+    Route::post('/positions/{position_id}/recruitment-batches', [RecruitmentBatchController::class, 'createRecruitmentBatch']);
+
+    // Candidate routes
+    Route::post('/recruitment-batches/{batch_id}/candidates', [CandidateController::class, 'createCandidate']);
+    Route::post('/recruitment-batches/{batch_id}/candidates/batch', [CandidateController::class, 'createCandidates']);
+    Route::patch('/recruitment-batches/{recruitment_batch_id}/candidates/stage', [CandidateStageController::class, 'moveCandidateStageToNextStep']);
+
+    // Interview routes
+    Route::post('/candidate-stages/{candidate_stage_id}/interviews', [InterviewController::class, 'createInterview']);
+
+    // Interviewer routes
+    Route::post('/interviews/{interview_id}/interviewers', [InterviewerController::class, 'createInterviewers']);
+    Route::post('/interviews/{interview_id}/interviewers/{user_id}', [InterviewerController::class, 'createInterviewer']);
+    Route::post('/interviews/{interview_id}/feedback', [InterviewerController::class, 'fillInterviewerFeedbackForm']);
+
+    // Approval routes
+    Route::post('/candidates/{candidate_id}/approvals', [ApprovalController::class, 'createApproval']);
+    Route::put('/approvals/{approval_id}', [ApprovalController::class, 'updateApproval']);
+    Route::get('/approvals/pending', [ApprovalController::class, 'getPendingApprovals']);
+    Route::get('/candidates/{candidate_id}/approvals', [ApprovalController::class, 'getCandidateApprovals']);
+});

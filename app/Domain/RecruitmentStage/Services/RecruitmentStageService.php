@@ -2,6 +2,7 @@
 
 namespace App\Domain\RecruitmentStage\Services;
 
+use App\Domain\RecruitmentStage\Exceptions\RecruitmentStageConflictException;
 use App\Domain\RecruitmentStage\Interfaces\RecruitmentStageRepositoryInterface;
 use App\Domain\RecruitmentStage\Interfaces\RecruitmentStageServiceInterface;
 use App\Domain\RecruitmentStage\Models\RecruitmentStage;
@@ -17,7 +18,7 @@ class RecruitmentStageService implements RecruitmentStageServiceInterface
     public function createRecruitmentStage(CreateRecruitmentStageRequest $request): void
     {
         if($this->recruitmentStageRepository->existsByOrderAndActive($request->order)){
-            throw new ConflictHttpException('Recruitment stage already exists', null, 409);
+            throw new RecruitmentStageConflictException(customMessage: 'Requuest with same order already exists') ;
         }
 
         $recruitmentStage = RecruitmentStage::make([

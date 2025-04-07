@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Utils;
+namespace App\Shared\Traits;
 
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Pagination\Paginator;

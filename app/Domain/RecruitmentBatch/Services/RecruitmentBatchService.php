@@ -2,6 +2,7 @@
 
 namespace App\Domain\RecruitmentBatch\Services;
 
+use App\Domain\Position\Exceptions\PositionNotFoundException;
 use App\Domain\Position\Interfaces\PositionRepositoryInterface;
 use App\Domain\RecruitmentBatch\Interfaces\RecruitmentBatchRepositoryInterface;
 use App\Domain\RecruitmentBatch\Interfaces\RecruitmentBatchServiceInterface;
@@ -20,10 +21,9 @@ class RecruitmentBatchService implements RecruitmentBatchServiceInterface
 
     public function createRecruitmentBatch(CreateRecruitmentBatchRequest $request, int $positionID): int
     {
-        Gate::authorize('create', RecruitmentBatch::class);
 
         if(!$this->positionRepository->positionExists(positionID: $positionID)){
-            throw new ModelNotFoundException('Position not found', 404);
+            throw new PositionNotFoundException(positionId: $positionID);
         }
 
         $recruitmentBatch = $this->makeRecruitmentBatch(request: $request, positionID: $positionID);
