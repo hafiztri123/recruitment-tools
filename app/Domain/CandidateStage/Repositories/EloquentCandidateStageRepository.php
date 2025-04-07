@@ -30,4 +30,9 @@ class EloquentCandidateStageRepository implements CandidateStageRepositoryInterf
         return CandidateStage::where('id', $id)->firstOrFail();
     }
 
+    public function lockForUpdate(int $id): CandidateStage
+    {
+        return CandidateStage::lockForUpdate()->findOrFail($id);
+    }
+
 }

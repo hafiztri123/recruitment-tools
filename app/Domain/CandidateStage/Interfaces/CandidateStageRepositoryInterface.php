@@ -10,4 +10,5 @@ interface CandidateStageRepositoryInterface
     public function create(CandidateStage $candidateStage): int;
     public function updateCandidateStage(CandidateStage $candidateStage, array $data): void;
     public function findById(int $id): CandidateStage;
+    public function lockForUpdate(int $id): CandidateStage;
 }

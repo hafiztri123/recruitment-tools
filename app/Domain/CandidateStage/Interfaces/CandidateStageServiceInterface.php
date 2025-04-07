@@ -16,7 +16,7 @@ interface CandidateStageServiceInterface
     public function moveCandidatesToNextStage(
         CandidatesStageUpdateStatusRequest $request,
         int $batchID
-    ): array;
+    ): void;
 
     public function rejectCandidates(
         int $candidateID,

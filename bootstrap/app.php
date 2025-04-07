@@ -68,6 +68,12 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
+    $exceptions->render(function (ModelNotFoundException $e, Request $request) {
+        if ($request->is(config('constants.ROUTE_API_WILDCARD'))) {
+            return (new ApiResponderService)->failResponse(message: $e->getMessage(), statusCode: Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+    });
+
 
 
         $exceptions->render(function(ValidationException $e, Request $request){

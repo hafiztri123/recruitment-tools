@@ -19,6 +19,7 @@ use App\Domain\RecruitmentBatch\Interfaces\RecruitmentBatchRepositoryInterface;
 use App\Domain\RecruitmentStage\Interfaces\RecruitmentStageRepositoryInterface;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\DB;
 
 class CandidateStageService implements CandidateStageServiceInterface
 {
@@ -48,49 +49,43 @@ class CandidateStageService implements CandidateStageServiceInterface
         int $recruitmentBatchID,
     ): void {
 
-        $candidateStage = $this->getCandidateStage($candidateID, $recruitmentBatchID);
+        DB::transaction(function () use ($candidateID, $recruitmentBatchID) {
+            $candidateStage = $this->getCandidateStage($candidateID, $recruitmentBatchID);
 
-        $this->candidateStageRepository->updateCandidateStage(candidateStage: $candidateStage, data:[
-            'status' => 'completed',
-            'completed_at' => now(),
-            'passed' => true,
-        ]);
+            $lockedCandidateStage = $this->candidateStageRepository->lockForUpdate(
+                id: $candidateStage->id
+            );
 
-        CandidateStageUpdated::dispatch($candidateStage, $recruitmentBatchID, $candidateID);
+
+            $this->candidateStageRepository->updateCandidateStage(candidateStage: $lockedCandidateStage, data: [
+                'status' => 'completed',
+                'completed_at' => now(),
+                'passed' => true,
+            ]);
+
+            CandidateStageUpdated::dispatch($candidateStage, $recruitmentBatchID, $candidateID)->afterCommit();
+        });
+
+
     }
 
-    public function moveCandidatesToNextStage(CandidatesStageUpdateStatusRequest $request, int $batchID): array
+    public function moveCandidatesToNextStage(CandidatesStageUpdateStatusRequest $request, int $batchID): void
     {
         $candidatesID = $request->candidates;
 
-        $moveToNextStagejobs = collect($candidatesID)->map(function ($candidateID) use ($batchID){
-            return new UpdateCandidateStageJob(
-                candidateID: $candidateID,
-                batchID: $batchID
-            );
-        })->toArray();
+        foreach ($candidatesID as $candidateID) {
+            UpdateCandidateStageJob::dispatch($candidateID, $batchID)
+                ->onQueue('candidate-updates');
+        }
 
-        $rejectedCandidates = $this->candidateProgressRepository->findByBatchIDAndExcludingByCandidateIds(batchID: $batchID, candidateIDs: $candidatesID);
+        $rejectedCandidates = $this->candidateProgressRepository
+            ->findByBatchIDAndExcludingByCandidateIds(batchID: $batchID, candidateIDs: $candidatesID);
 
-        $CandidateRejectionJobs = collect($rejectedCandidates)->map(function($rejectedCandidate) use ($batchID){
-            return new RejectCandidateJob(
-                candidateID: $rejectedCandidate->id,
-                batchID: $batchID
-            );
-        })->toArray();
+        foreach ($rejectedCandidates as $rejectedCandidate) {
+            RejectCandidateJob::dispatch($rejectedCandidate->id, $batchID)
+                ->onQueue('candidate-rejections');
+        }
 
-        $batchOfPassedCandidates = Bus::batch($moveToNextStagejobs)
-            ->allowFailures(false)
-            ->dispatch();
-
-        $batchOfRejectedCandidates = Bus::batch($CandidateRejectionJobs)
-            ->allowFailures(false)
-            ->dispatch();
-
-        return [
-            'batch_of_passed_candidates_id' => $batchOfPassedCandidates->id,
-            'batch_of_rejected_candidates_id' => $batchOfRejectedCandidates->id
-        ];
 
     }
 

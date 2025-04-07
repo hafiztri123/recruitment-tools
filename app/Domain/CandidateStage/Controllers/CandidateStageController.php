@@ -4,8 +4,9 @@ namespace App\Domain\CandidateStage\Controllers;
 
 use App\Domain\CandidateStage\Interfaces\CandidateStageServiceInterface;
 use App\Domain\CandidateStage\Requests\CandidatesStageUpdateStatusRequest;
+use App\Shared\ApiResponderService as SharedApiResponderService;
+use App\Shared\Controllers\Controller;
 use App\Utils\ApiResponderService;
-use App\Utils\Http\Controllers\Controller;
 use Illuminate\Http\Response;
 
 class CandidateStageController extends Controller
@@ -18,8 +19,6 @@ class CandidateStageController extends Controller
     {
         $batchID = $request->route('recruitment_batch_id');
         $jobBatchID = $this->candidateStageService->moveCandidatesToNextStage(request: $request, batchID: $batchID);
-        return (new ApiResponderService)->successResponse('Move candidate stage accepted', Response::HTTP_ACCEPTED, [
-            'job_batch_id' => $jobBatchID
-        ]);
+        return (new SharedApiResponderService)->successResponse('Move candidate stage accepted', Response::HTTP_ACCEPTED);
     }
 }

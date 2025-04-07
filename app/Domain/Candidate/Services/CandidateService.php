@@ -12,6 +12,7 @@ use App\Domain\Position\Interfaces\PositionRepositoryInterface;
 use App\Domain\RecruitmentBatch\Exceptions\RecruitmentBatchNotFoundException;
 use App\Domain\RecruitmentBatch\Interfaces\RecruitmentBatchRepositoryInterface;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class CandidateService implements CandidateServiceInterface
@@ -26,17 +27,19 @@ class CandidateService implements CandidateServiceInterface
 
     public function createCandidate(array $candidateData, int $batchID): void
     {
-       $recruitmentBatchExists = $this->recruitmentBatchRepository->recruitmentBatchExistsByID(id: $batchID);
+        DB::transaction(function () use ($candidateData, $batchID) {
+            $recruitmentBatchExists = $this->recruitmentBatchRepository->recruitmentBatchExistsByID(id: $batchID);
 
-       if(!$recruitmentBatchExists){
-        throw new RecruitmentBatchNotFoundException(recruitmentBatchId: $batchID);
-       }
+            if (!$recruitmentBatchExists) {
+                throw new RecruitmentBatchNotFoundException(recruitmentBatchId: $batchID);
+            }
 
-       $candidate = $this->makeCandidate(candidateData: $candidateData);
-       $this->candidateRepository->create(candidate: $candidate);
+            $candidate = $this->makeCandidate(candidateData: $candidateData);
+            $this->candidateRepository->create(candidate: $candidate);
 
-       //event listener
-       CandidateCreated::dispatch($candidate, $batchID);
+            //event listener
+            CandidateCreated::dispatch($candidate, $batchID)->afterCommit();
+        });
 
     }
 

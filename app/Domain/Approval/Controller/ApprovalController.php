@@ -32,7 +32,7 @@ class ApprovalController extends Controller
 
     public function updateApproval(UpdateApprovalRequest $request, $approvalId)
     {
-        $approval = Approval::findOrFail($approvalId);
+        $approval = Approval::lockForUpdate()->findOrFail($approvalId);
         Gate::authorize('update', $approval);
 
         $approvalData = $request->validated();
