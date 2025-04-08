@@ -34,5 +34,17 @@ class EloquentApprovalRepository implements ApprovalRepositoryInterface
             ->firstOrFail();
     }
 
+    public function findByCandidateId(int $candidateId): Collection
+    {
+        return Approval::where('candidate_id', $candidateId)->get();
+    }
+
+    public function approvalExists(int $candidateID, int $approverID): bool
+    {
+        return Approval::where('candidate_id', $candidateID)
+            ->where('approver_id', $approverID)
+            ->exists();
+    }
+
 
 }

@@ -7,6 +7,8 @@ use App\Domain\Approval\Interfaces\ApprovalServiceInterface;
 use App\Domain\Approval\Models\Approval;
 use App\Domain\Candidate\Exceptions\CandidateNotFoundException;
 use App\Domain\Candidate\Interfaces\CandidateRepositoryInterface;
+use App\Domain\Position\Interfaces\PositionRepositoryInterface;
+use App\Domain\RecruitmentBatch\Interfaces\RecruitmentBatchRepositoryInterface;
 use App\Domain\User\Exceptions\UserNotFoundException;
 use App\Domain\User\Interfaces\UserRepositoryInterface;
 use App\Shared\Exceptions\BadRequestException;
@@ -17,7 +19,9 @@ class ApprovalService implements ApprovalServiceInterface
     public function __construct(
         private ApprovalRepositoryInterface $approvalRepository,
         private CandidateRepositoryInterface $candidateRepository,
-        private UserRepositoryInterface $userRepository
+        private UserRepositoryInterface $userRepository,
+        private RecruitmentBatchRepositoryInterface $recruitmentBatchRepository,
+        private PositionRepositoryInterface $positionRepository
     ) {}
 
     public function createApproval(array $data): void
@@ -98,6 +102,38 @@ class ApprovalService implements ApprovalServiceInterface
         $approverExists = $this->userRepository->existsById(id: $data['approver_id']);
         if (!$approverExists) {
             throw new UserNotFoundException(userId: $data['approver_id'], customMessage: 'Approver not found');
+        }
+    }
+
+    public function getRequiredApproversForCandidate(int $candidateID): array
+    {
+        $requiredApproverRoles = ['head-of-hr', 'department-head'];
+
+        $candidate = $this->candidateRepository->findCandidateById($candidateID);
+        $recruitmentBatch = $this->recruitmentBatchRepository->findRecruitmentBatchByID($candidate->recruitmentBatch->id);
+        $position = $this->positionRepository->findById($recruitmentBatch->position_id);
+        $departmentId = $position->department_id;
+
+        $approvers = $this->userRepository->findUsersByRolesAndDepartment(
+            $requiredApproverRoles,
+            $departmentId
+        )->toArray();
+
+        return $approvers;
+    }
+
+    public function requestRequiredApprovals(int $candidateID): void
+    {
+        $requiredApprovers = $this->getRequiredApproversForCandidate($candidateID);
+
+        foreach ($requiredApprovers as $approver) {
+            if (!$this->approvalRepository->approvalExists($candidateID, $approver->id)) {
+                $this->createApproval([
+                    'candidate_id' => $candidateID,
+                    'approver_id' => $approver->id,
+                    'comments' => 'Automatically generated approval request'
+                ]);
+            }
         }
     }
 }

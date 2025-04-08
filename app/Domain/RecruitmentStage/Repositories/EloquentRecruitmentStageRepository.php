@@ -28,5 +28,14 @@ class EloquentRecruitmentStageRepository implements RecruitmentStageRepositoryIn
         return RecruitmentStage::where('is_active', true)->count();
     }
 
+    public function getFinalStageOrder(): int
+    {
+        return RecruitmentStage::
+            where('is_active', true)
+            ->orderBy('order', 'desc')
+            ->value('order');
+    }
+
+
 
 }

@@ -10,4 +10,5 @@ interface RecruitmentStageRepositoryInterface
     public function create(RecruitmentStage $recruitmentStage): void;
     public function existsByOrderAndActive(int $order): bool;
     public function getTotalStages(): int;
+    public function getFinalStageOrder(): int;
 }

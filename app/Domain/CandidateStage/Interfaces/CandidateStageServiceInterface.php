@@ -2,6 +2,7 @@
 
 namespace App\Domain\CandidateStage\Interfaces;
 
+use App\Domain\CandidateStage\Models\CandidateStage;
 use App\Domain\CandidateStage\Requests\CandidatesStageUpdateStatusRequest;
 
 interface CandidateStageServiceInterface
@@ -22,5 +23,10 @@ interface CandidateStageServiceInterface
         int $candidateID,
         int $recruitmentBatchID
     ): void;
+
+    public function getCurrentCandidateStage(
+        int $candidateID,
+        int $batchID
+    ): CandidateStage;
 
 }

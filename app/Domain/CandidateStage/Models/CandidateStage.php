@@ -20,7 +20,5 @@ class CandidateStage extends Model
     public function recruitmentStage(): BelongsTo
     {
         return $this->belongsTo(RecruitmentStage::class, 'stage_id', 'id');
-
-
     }
 }

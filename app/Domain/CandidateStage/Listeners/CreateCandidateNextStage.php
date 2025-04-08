@@ -5,6 +5,7 @@ namespace App\Domain\CandidateStage\Listeners;
 use App\Domain\CandidateStage\Events\CandidateNextStageCreated;
 use App\Domain\CandidateStage\Events\CandidateStageUpdated;
 use App\Domain\CandidateStage\Interfaces\CandidateStageServiceInterface;
+use App\Domain\RecruitmentStage\Interfaces\RecruitmentStageRepositoryInterface;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\DB;
 
@@ -16,28 +17,40 @@ class CreateCandidateNextStage implements ShouldQueue
 
 
     public function __construct(
-        protected CandidateStageServiceInterface $candidateStageService
+        protected CandidateStageServiceInterface $candidateStageService,
+        protected RecruitmentStageRepositoryInterface $recruitmentStageRepository
+
     )
     {}
 
-    /**
-     * Handle the event.
-     */
+    /***************************************************
+     *
+     *
+     *
+     * * Purpose:
+     *
+     *
+     *
+     **************************************************/
+
     public function handle(CandidateStageUpdated $event): void
     {
         DB::transaction(function () use ($event) {
-            $NEXT_STAGE = 1;
-            $stageID = $this->candidateStageService->createCandidateStage($event->candidateStage->recruitmentStage->order + $NEXT_STAGE);
+            $candidateStage = $event->candidateStage;
+            $currentStageOrder = $candidateStage->recruitmentStage->order;
+            $finalStageOrder = $this->recruitmentStageRepository->getFinalStageOrder();
 
-            CandidateNextStageCreated::dispatch(
-                $event->candidateID,
-                $event->batchID,
-                $stageID
-            );
+            if($currentStageOrder < $finalStageOrder){
+                $nextStageOrder = $currentStageOrder + 1;
+                $stageID = $this->candidateStageService->createCandidateStage(order: $nextStageOrder);
+
+                CandidateNextStageCreated::dispatch(
+                    $event->candidateID,
+                    $event->batchID,
+                    $stageID
+                );
+            }
+
         });
-
-
-
-
     }
 }
