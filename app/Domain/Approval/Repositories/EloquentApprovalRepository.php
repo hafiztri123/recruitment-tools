@@ -15,6 +15,14 @@ class EloquentApprovalRepository implements ApprovalRepositoryInterface
 
     public function findByApproverIdAndStatusPending(int $approverId): Collection
     {
+        $exists = Approval::where('approver_id', $approverId)
+            ->where('status', 'pending')
+            ->exists();
+
+        if (!$exists) {
+            return collect();
+        }
+
         return Approval::where('approver_id', $approverId)
             ->where('status', 'pending')
             ->get();
@@ -22,6 +30,14 @@ class EloquentApprovalRepository implements ApprovalRepositoryInterface
 
     public function findByCandidateIdAndStatusPending(int $candidateId): Collection
     {
+        $exists = Approval::where('candidate_id', $candidateId)
+            ->where('status', 'pending')
+            ->exists();
+
+        if (!$exists) {
+            return collect();
+        }
+
         return Approval::where('candidate_id', $candidateId)
             ->where('status', 'pending')
             ->get();
@@ -36,6 +52,12 @@ class EloquentApprovalRepository implements ApprovalRepositoryInterface
 
     public function findByCandidateId(int $candidateId): Collection
     {
+        $exists = Approval::where('candidate_id', $candidateId)->exists();
+
+        if (!$exists) {
+            return collect();
+        }
+
         return Approval::where('candidate_id', $candidateId)->get();
     }
 
@@ -44,6 +66,13 @@ class EloquentApprovalRepository implements ApprovalRepositoryInterface
         return Approval::where('candidate_id', $candidateID)
             ->where('approver_id', $approverID)
             ->exists();
+    }
+
+    public function findApproverIdsByCandidateId(int $candidateId): array
+    {
+        return Approval::where('candidate_id', $candidateId)
+            ->pluck('approver_id')
+            ->toArray();
     }
 
 

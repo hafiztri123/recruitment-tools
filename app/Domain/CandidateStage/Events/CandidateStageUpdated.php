@@ -19,7 +19,11 @@ class CandidateStageUpdated
         public CandidateStage $candidateStage,
         public int $batchID,
         public int $candidateID
-    ){}
+    ){
+        if (!$candidateStage->relationLoaded('recruitmentStage')) {
+            $candidateStage->load('recruitmentStage');
+        }
+    }
 
     /**
      * Get the channels the event should broadcast on.

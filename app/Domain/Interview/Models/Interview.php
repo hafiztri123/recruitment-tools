@@ -2,6 +2,8 @@
 
 namespace App\Domain\Interview\Models;
 
+use App\Domain\CandidateStage\Models\CandidateStage;
+use App\Domain\Interviewer\Models\Interviewer;
 use Illuminate\Database\Eloquent\Model;
 
 class Interview extends Model
@@ -15,4 +17,14 @@ class Interview extends Model
         'notes',
         'created_by'
     ];
+
+    public function candidateStage()
+    {
+        return $this->belongsTo(CandidateStage::class, 'candidate_stage_id');
+    }
+
+    public function interviewers()
+    {
+        return $this->hasMany(Interviewer::class, 'interview_id');
+    }
 };

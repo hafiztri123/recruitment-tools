@@ -8,27 +8,32 @@ use App\Domain\RecruitmentBatch\Interfaces\RecruitmentBatchRepositoryInterface;
 use App\Domain\RecruitmentBatch\Interfaces\RecruitmentBatchServiceInterface;
 use App\Domain\RecruitmentBatch\Models\RecruitmentBatch;
 use App\Domain\RecruitmentBatch\Requests\CreateRecruitmentBatchRequest;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\DB;
 
 class RecruitmentBatchService implements RecruitmentBatchServiceInterface
 {
     public function __construct(
         protected RecruitmentBatchRepositoryInterface $recruitmentBatchRepository,
         protected PositionRepositoryInterface $positionRepository
-    ){}
+    ) {}
 
     public function createRecruitmentBatch(CreateRecruitmentBatchRequest $request, int $positionID): int
     {
+        return DB::transaction(function () use ($request, $positionID) {
+            $this->validatePositionExists($positionID);
 
-        if(!$this->positionRepository->positionExists(positionID: $positionID)){
+            $recruitmentBatch = $this->makeRecruitmentBatch($request, $positionID);
+            return $this->recruitmentBatchRepository->create($recruitmentBatch);
+        });
+    }
+
+
+    private function validatePositionExists(int $positionID): void
+    {
+        if (!$this->positionRepository->positionExists(positionID: $positionID)) {
             throw new PositionNotFoundException(positionId: $positionID);
         }
-
-        $recruitmentBatch = $this->makeRecruitmentBatch(request: $request, positionID: $positionID);
-
-        return $this->recruitmentBatchRepository->create($recruitmentBatch);
     }
 
     private function makeRecruitmentBatch(CreateRecruitmentBatchRequest $request, int $positionID): RecruitmentBatch
@@ -46,6 +51,4 @@ class RecruitmentBatchService implements RecruitmentBatchServiceInterface
 
         return $recruitmentBatch;
     }
-
-
 }

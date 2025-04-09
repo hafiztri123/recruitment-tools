@@ -2,7 +2,7 @@
 
 namespace App\Domain\Interviewer\Interfaces;
 
-use App\Domain\Interview\Models\Interviewer;
+use App\Domain\Interviewer\Models\Interviewer;
 use Carbon\Carbon;
 
 interface InterviewerRepositoryInterface

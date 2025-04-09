@@ -13,5 +13,6 @@ interface ApprovalRepositoryInterface
     public function findByCandidateId(int $candidateId):Collection;
     public function findByApproverIdAndCandidateIdAndStatusPending(int $approverId, int $candidateId): Approval;
     public function approvalExists(int $candidateID, int $approverID): bool;
+    public function findApproverIdsByCandidateId(int $candidateId): array;
 }
 

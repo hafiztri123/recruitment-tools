@@ -23,48 +23,34 @@ class CandidateService implements CandidateServiceInterface
         protected PositionRepositoryInterface $positionRepository
     ) {}
 
-
-
     public function createCandidate(array $candidateData, int $batchID): void
     {
         DB::transaction(function () use ($candidateData, $batchID) {
-            $recruitmentBatchExists = $this->recruitmentBatchRepository->recruitmentBatchExistsByID(id: $batchID);
-
-            if (!$recruitmentBatchExists) {
-                throw new RecruitmentBatchNotFoundException(recruitmentBatchId: $batchID);
-            }
+            $this->validateBatchExists($batchID);
 
             $candidate = $this->makeCandidate(candidateData: $candidateData);
             $this->candidateRepository->create(candidate: $candidate);
 
-            //event listener
             CandidateCreated::dispatch($candidate, $batchID)->afterCommit();
         });
-
     }
 
     public function createCandidates(CreateMultipleCandidatesRequest $request, int $batchID): string
     {
+        $this->validateBatchExistsOutsideTransaction($batchID);
+
         $candidates = $request['candidates'];
+        $chunkSize = 10;
 
-        $jobs = collect($candidates)->map(function ($candidate) use ($batchID){
-            return new CreateCandidateJob($candidate, $batchID);
-        })->toArray();
+        $jobBatch = $this->createJobBatch($batchID);
+        $this->addCandidateJobsToJobBatch($candidates, $jobBatch, $batchID, $chunkSize);
 
-        $batch = Bus::batch($jobs)
-            ->then(function ($batch) use ($batchID){
-                $recruitmentBatch = $this->recruitmentBatchRepository->findRecruitmentBatchByID($batchID);
-                $position = $this->positionRepository->findByID($recruitmentBatch->position_id);
-                Log::info("Recruitment batch: {$recruitmentBatch->name} Position: {$position->name} created successfully");
-        })
-        ->dispatch();
-
-        return $batch->id;
+        return $jobBatch->id;
     }
 
     private function makeCandidate(array $candidateData): Candidate
     {
-        $candidate = Candidate::make([
+        return Candidate::make([
             'first_name' => $candidateData['first_name'],
             'last_name' => $candidateData['last_name'],
             'email' => $candidateData['email'],
@@ -75,8 +61,49 @@ class CandidateService implements CandidateServiceInterface
             'status' => $candidateData['status'] ?? 'new',
             'notes' => $candidateData['notes'] ?? null,
         ]);
-
-        return $candidate;
     }
 
+    private function validateBatchExists(int $batchID): void
+    {
+        $recruitmentBatchExists = $this->recruitmentBatchRepository->recruitmentBatchExistsByID(id: $batchID);
+
+        if (!$recruitmentBatchExists) {
+            throw new RecruitmentBatchNotFoundException(recruitmentBatchId: $batchID);
+        }
+    }
+
+    private function validateBatchExistsOutsideTransaction(int $batchID): void
+    {
+        DB::transaction(function () use ($batchID) {
+            $this->validateBatchExists($batchID);
+        });
+    }
+
+    private function createJobBatch(int $batchID): object
+    {
+        return Bus::batch([])
+            ->then(function ($batch) use ($batchID) {
+                $this->logBatchCompletion($batchID);
+            })
+            ->name('Process candidate imports - Batch ' . $batchID)
+            ->dispatch();
+    }
+
+    private function logBatchCompletion(int $batchID): void
+    {
+        $recruitmentBatch = $this->recruitmentBatchRepository->findRecruitmentBatchWithPosition($batchID);
+        $position = $recruitmentBatch->position;
+        Log::info("Recruitment batch: {$recruitmentBatch->name} Position: {$position->name} created successfully");
+    }
+
+    private function addCandidateJobsToJobBatch(array $candidates, object $jobBatch, int $batchID, int $chunkSize): void
+    {
+        collect($candidates)->chunk($chunkSize)->each(function ($candidateChunk) use ($jobBatch, $batchID) {
+            $jobs = $candidateChunk->map(function ($candidate) use ($batchID) {
+                return new CreateCandidateJob($candidate, $batchID);
+            })->toArray();
+
+            $jobBatch->add($jobs);
+        });
+    }
 }

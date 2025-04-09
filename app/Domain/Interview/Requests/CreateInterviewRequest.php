@@ -11,8 +11,6 @@ class CreateInterviewRequest extends FormRequest
         return true;
     }
 
-
-
     public function rules(): array
     {
         return [
@@ -20,13 +18,14 @@ class CreateInterviewRequest extends FormRequest
                 'required',
                 'date',
                 'after_or_equal:now',
-                'before_or_equal:' . now()->addMonths(6)->format('Y-m-d H:i:s') 
+                'before_or_equal:' . now()->addMonths(6)->format('Y-m-d H:i:s')
             ],
-
             'duration_minutes' => 'required|integer',
             'location' => 'nullable|string|max:255',
             'meeting_link' => 'nullable|string|max:255',
-            'notes' => 'string|nullable|max:255',
+            'notes' => 'nullable|string|max:255',
+            'interviewers' => 'sometimes|array|nullable',
+            'interviewers.*' => 'integer|exists:users,id',
         ];
     }
 }

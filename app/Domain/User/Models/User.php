@@ -69,5 +69,7 @@ class User extends Authenticatable
         return $this->roles()->whereIn('slug', $slugs)->exists();
     }
 
+    
+
 
 }

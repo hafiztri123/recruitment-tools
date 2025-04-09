@@ -31,11 +31,32 @@ class EloquentUserRepository implements UserRepositoryInterface
 
     public function findUsersByRolesAndDepartment(array $requiredApproverRoles, int $departmentId): Collection
     {
+        $exists = User::where('department_id', $departmentId)
+            ->whereHas('roles', function ($query) use ($requiredApproverRoles) {
+                $query->whereIn('slug', $requiredApproverRoles);
+            })
+            ->exists();
+
+        if (!$exists) {
+            return collect();
+        }
+
         return User::with('roles')
             ->where('department_id', $departmentId)
-            ->whereHas('roles', function ($query) use ($requiredApproverRoles){
+            ->whereHas('roles', function ($query) use ($requiredApproverRoles) {
                 $query->whereIn('slug', $requiredApproverRoles);
             })
             ->get();
+    }
+
+    public function getAllPotentialInterviewers(): Collection
+    {
+        $exists = User::exists();
+
+        if (!$exists) {
+            return collect();
+        }
+
+        return User::all();
     }
 }

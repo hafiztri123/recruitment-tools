@@ -12,14 +12,11 @@ use App\Domain\User\Requests\UserLoginRequest;
 use App\Domain\User\Requests\UserRegisterRequest;
 use App\Domain\User\Resources\UserResource;
 use App\Shared\Exceptions\AuthenticationException as ExceptionsAuthenticationException;
-use Illuminate\Auth\AuthenticationException;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class UserService implements UserServiceInterface
 {
-
-
     public function __construct(
         protected UserRepositoryInterface $userRepository,
         protected DepartmentRepositoryInterface $departmentRepository,
@@ -28,43 +25,46 @@ class UserService implements UserServiceInterface
 
     public function register(UserRegisterRequest $request, int $departmentID): void
     {
-        if (!$this->departmentRepository->departmentExists($departmentID)) {
-            throw new DepartmentNotFoundException(
-                departmentId: $departmentID
-            );
-        }
+        DB::transaction(function () use ($request, $departmentID) {
+            $this->validateDepartmentExists($departmentID);
 
-        $user = User::make([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'department_id' => $departmentID
-        ]);
+            $user = $this->createUserModel($request, $departmentID);
+            $this->userRepository->create($user);
 
-
-
-        $this->userRepository->create($user);
-
-        $this->assignRole(user: $user, slug: 'user');
-
-
+            $this->assignRole(user: $user, slug: 'user');
+        });
     }
 
     public function login(UserLoginRequest $request): string
     {
         $user = $this->userRepository->findByEmail($request->email);
-
-        $userHashedPassword = $user->password;
-
-        if (!Hash::check($request->password, $userHashedPassword)){
-            throw new ExceptionsAuthenticationException(
-                details: [
-                    'credential' => 'Invalid credentials'
-                ]
-            );
-        }
+        $this->validatePassword($request->password, $user->password);
 
         return $user->createToken('auth_token')->plainTextToken;
+    }
+
+    public function getMe(): UserResource
+    {
+        $user = $this->userRepository->findMe();
+        return new UserResource($user);
+    }
+
+
+    private function validateDepartmentExists(int $departmentID): void
+    {
+        if (!$this->departmentRepository->departmentExists($departmentID)) {
+            throw new DepartmentNotFoundException(departmentId: $departmentID);
+        }
+    }
+
+    private function createUserModel(UserRegisterRequest $request, int $departmentID): User
+    {
+        return User::make([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'department_id' => $departmentID
+        ]);
     }
 
     private function assignRole(User $user, string $slug): void
@@ -73,10 +73,14 @@ class UserService implements UserServiceInterface
         $user->roles()->attach(ids: $roleID);
     }
 
-    public function getMe(): UserResource
+    private function validatePassword(string $providedPassword, string $userHashedPassword): void
     {
-        $user = $this->userRepository->findMe();
-        return new UserResource($user);
+        if (!Hash::check($providedPassword, $userHashedPassword)) {
+            throw new ExceptionsAuthenticationException(
+                details: [
+                    'credential' => 'Invalid credentials'
+                ]
+            );
+        }
     }
 }
-

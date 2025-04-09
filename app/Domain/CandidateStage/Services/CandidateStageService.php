@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Domain\CandidateStage\Services;
 
 use App\Domain\Approval\Interfaces\ApprovalRepositoryInterface;
@@ -9,8 +8,15 @@ use App\Domain\Candidate\Interfaces\CandidateRepositoryInterface;
 use App\Domain\CandidateProgress\Exceptions\CandidateProgressNotFoundException;
 use App\Domain\CandidateProgress\Interfaces\CandidateProgressRepositoryInterface;
 use App\Domain\CandidateStage\Events\CandidateStageUpdated;
+use App\Domain\CandidateStage\Exceptions\CandidateApprovalCheckException;
+use App\Domain\CandidateStage\Exceptions\CandidateBatchUpdateException;
+use App\Domain\CandidateStage\Exceptions\CandidateRejectionException;
 use App\Domain\CandidateStage\Exceptions\CandidateStageAlreadyCompletedException;
+use App\Domain\CandidateStage\Exceptions\CandidateStageCreationException;
+use App\Domain\CandidateStage\Exceptions\CandidateStageNotFoundException;
 use App\Domain\CandidateStage\Exceptions\CandidateStageNotApprovedException;
+use App\Domain\CandidateStage\Exceptions\CandidateStageUpdateException;
+use App\Domain\CandidateStage\Exceptions\PreviousStageNotCompletedException;
 use App\Domain\CandidateStage\Interfaces\CandidateStageRepositoryInterface;
 use App\Domain\CandidateStage\Interfaces\CandidateStageServiceInterface;
 use App\Domain\CandidateStage\Jobs\RejectCandidateJob;
@@ -24,8 +30,6 @@ use Illuminate\Support\Facades\DB;
 
 class CandidateStageService implements CandidateStageServiceInterface
 {
-
-
     public function __construct(
         protected CandidateStageRepositoryInterface $candidateStageRepository,
         protected RecruitmentStageRepositoryInterface $recruitmentStageRepository,
@@ -33,57 +37,156 @@ class CandidateStageService implements CandidateStageServiceInterface
         protected CandidateRepositoryInterface $candidateRepository,
         protected RecruitmentBatchRepositoryInterface $recruitmentBatchRepository,
         protected ApprovalRepositoryInterface $approvalRepository
-    ){}
-
-    /***************************************************
-     *
-     *
-     *
-     * * Purpose:
-     *
-     *
-     *
-     **************************************************/
+    ) {}
 
     public function createCandidateStage(int $order): int
     {
-        $candidateStage = CandidateStage::make([
-            'status' => 'pending',
-            'scheduled_at' => now(),
-        ]);
+        try {
+            $recruitmentStage = $this->recruitmentStageRepository->findByOrder(order: $order);
 
-        $candidateStage->stage_id = $this->recruitmentStageRepository->findByOrder(order: $order)->id;
-        return $this->candidateStageRepository->create(candidateStage: $candidateStage);
+            $candidateStage = CandidateStage::make([
+                'status' => 'pending',
+                'scheduled_at' => now(),
+            ]);
+
+            $candidateStage->stage_id = $recruitmentStage->id;
+            return $this->candidateStageRepository->create(candidateStage: $candidateStage);
+        } catch (\Exception $e) {
+            throw new CandidateStageCreationException(
+                message: "Failed to create candidate stage with order {$order}: {$e->getMessage()}",
+                errors: ['order' => $order]
+            );
+        }
     }
-
-    /***************************************************
-     *
-     *
-     *
-     * * Purpose: Passing candidate to the next stage
-     *
-     *
-     *
-     *
-     **************************************************/
 
     public function moveCandidateToNextStage(
         int $candidateID,
         int $recruitmentBatchID,
     ): void {
+        try {
+            $candidateStage = $this->getCurrentCandidateStage($candidateID, $recruitmentBatchID);
 
-        $candidateStage = $this->getCurrentCandidateStage($candidateID, $recruitmentBatchID);
+            $this->validateStageStatus($candidateStage);
+            $this->validatePreviousStages($candidateID, $recruitmentBatchID, $candidateStage);
+            $this->validateRequiredApprovals($candidateID, $candidateStage);
 
-        if($candidateStage->status === 'completed'){
+            $this->completeCandidateStage($candidateStage, $recruitmentBatchID, $candidateID);
+        } catch (
+            CandidateNotFoundException | RecruitmentBatchNotFoundException |
+            CandidateProgressNotFoundException | CandidateStageAlreadyCompletedException |
+            PreviousStageNotCompletedException | CandidateStageNotApprovedException $e
+        ) {
+            // Re-throw domain exceptions as they are already properly typed
+            throw $e;
+        } catch (\Exception $e) {
+            throw new CandidateStageUpdateException(
+                candidateId: $candidateID,
+                batchId: $recruitmentBatchID,
+                customMessage: "Failed to move candidate to next stage: {$e->getMessage()}"
+            );
+        }
+    }
+
+    public function moveCandidatesToNextStage(CandidatesStageUpdateStatusRequest $request, int $batchID): void
+    {
+        try {
+            $this->validateBatchExists($batchID);
+
+            $candidatesID = $request->candidates;
+            $this->dispatchCandidateUpdateJobs($candidatesID, $batchID);
+            $this->handleRejectedCandidates($candidatesID, $batchID);
+        } catch (CandidateNotFoundException | RecruitmentBatchNotFoundException $e) {
+            // Re-throw domain exceptions
+            throw $e;
+        } catch (\Exception $e) {
+            throw new CandidateBatchUpdateException(
+                batchId: $batchID,
+                customMessage: "Failed to move candidates to next stage: {$e->getMessage()}"
+            );
+        }
+    }
+
+    public function rejectCandidates(int $candidateID, int $recruitmentBatchID): void
+    {
+        try {
+            $this->validateCandidateAndBatchExist($candidateID, $recruitmentBatchID);
+
+            DB::transaction(function () use ($candidateID, $recruitmentBatchID) {
+                $candidateStage = $this->getCurrentCandidateStage($candidateID, $recruitmentBatchID);
+
+                $this->candidateStageRepository->updateCandidateStage(candidateStage: $candidateStage, data: [
+                    'status' => 'failed',
+                    'completed_at' => now(),
+                    'passed' => false,
+                ]);
+            });
+        } catch (CandidateNotFoundException | RecruitmentBatchNotFoundException | CandidateProgressNotFoundException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            throw new CandidateRejectionException(
+                candidateId: $candidateID,
+                batchId: $recruitmentBatchID,
+                customMessage: "Failed to reject candidate: {$e->getMessage()}"
+            );
+        }
+    }
+
+    public function getCurrentCandidateStage(
+        int $candidateID,
+        int $recruitmentBatchID
+    ): CandidateStage {
+        $this->validateCandidateAndBatchExist($candidateID, $recruitmentBatchID);
+
+        $candidateProgresses = $this->candidateProgressRepository->findByCandidateIDAndRecruitmentBatchIDWithStages(
+            candidateID: $candidateID,
+            recruitmentBatchID: $recruitmentBatchID
+        );
+
+        if ($candidateProgresses->isEmpty()) {
+            throw new CandidateProgressNotFoundException(customMessage: "Candidate progress with candidate ID: $candidateID and recruitment batch ID: $recruitmentBatchID not found");
+        }
+
+        $candidateStage = $candidateProgresses->last()->candidateStage;
+
+        if (!$candidateStage) {
+            throw new CandidateStageNotFoundException(customMessage: "Candidate stage not found for candidate ID: $candidateID and recruitment batch ID: $recruitmentBatchID");
+        }
+
+        return $candidateStage;
+    }
+
+
+    private function validateStageStatus(CandidateStage $candidateStage): void
+    {
+        if ($candidateStage->status === 'completed') {
             throw new CandidateStageAlreadyCompletedException(
                 'This stage is already completed. Cannot update completed stages.'
             );
         }
+    }
 
+    private function validatePreviousStages(int $candidateID, int $recruitmentBatchID, CandidateStage $candidateStage): void
+    {
         $currentStageOrder = $candidateStage->recruitmentStage->order;
 
+        if ($currentStageOrder > 1) {
+            $previousStageCompleted = $this->verifyPreviousStagesCompleted(
+                candidateID: $candidateID,
+                recruitmentBatchID: $recruitmentBatchID,
+                currentStageOrder: $currentStageOrder
+            );
 
+            if (!$previousStageCompleted) {
+                throw new PreviousStageNotCompletedException(
+                    errors: ['current_stage_order' => $currentStageOrder]
+                );
+            }
+        }
+    }
 
+    private function validateRequiredApprovals(int $candidateID, CandidateStage $candidateStage): void
+    {
+        $currentStageOrder = $candidateStage->recruitmentStage->order;
         $finalStageOrder = $this->recruitmentStageRepository->getFinalStageOrder();
 
         if ($currentStageOrder + 1 >= $finalStageOrder) {
@@ -93,17 +196,14 @@ class CandidateStageService implements CandidateStageServiceInterface
                 throw new CandidateStageNotApprovedException($candidateStage->id);
             }
         }
+    }
 
-        if($currentStageOrder === $finalStageOrder - 1){
-
-        }
-
+    private function completeCandidateStage(CandidateStage $candidateStage, int $recruitmentBatchID, int $candidateID): void
+    {
         DB::transaction(function () use ($candidateStage, $recruitmentBatchID, $candidateID) {
-
             $lockedCandidateStage = $this->candidateStageRepository->lockForUpdate(
                 id: $candidateStage->id
             );
-
 
             $this->candidateStageRepository->updateCandidateStage(candidateStage: $lockedCandidateStage, data: [
                 'status' => 'completed',
@@ -113,80 +213,17 @@ class CandidateStageService implements CandidateStageServiceInterface
 
             CandidateStageUpdated::dispatch($candidateStage, $recruitmentBatchID, $candidateID)->afterCommit();
         });
-
-
     }
 
-    /***************************************************
-     *
-     *
-     *
-     * * Purpose:
-     *
-     *
-     *
-     *
-     **************************************************/
-
-
-    public function moveCandidatesToNextStage(CandidatesStageUpdateStatusRequest $request, int $batchID): void
+    private function validateBatchExists(int $batchID): void
     {
-        $candidatesID = $request->candidates;
-
-        foreach ($candidatesID as $candidateID) {
-            UpdateCandidateStageJob::dispatch($candidateID, $batchID)
-                ->onQueue('candidate-updates');
+        if (!$this->recruitmentBatchRepository->recruitmentBatchExistsByID(id: $batchID)) {
+            throw new RecruitmentBatchNotFoundException(recruitmentBatchId: $batchID);
         }
-
-        $rejectedCandidates = $this->candidateProgressRepository
-            ->findByBatchIDAndExcludingByCandidateIds(batchID: $batchID, candidateIDs: $candidatesID);
-
-        foreach ($rejectedCandidates as $rejectedCandidate) {
-            RejectCandidateJob::dispatch($rejectedCandidate->id, $batchID)
-                ->onQueue('candidate-rejections');
-        }
-
-
     }
 
-    /***************************************************
-     *
-     *
-     *
-     * * Purpose:
-     *
-     *
-     *
-     **************************************************/
-
-    public function rejectCandidates(
-        int $candidateID,
-        int $recruitmentBatchID
-    ):void
+    private function validateCandidateAndBatchExist(int $candidateID, int $recruitmentBatchID): void
     {
-        $candidateStage = $this->getCurrentCandidateStage($candidateID, $recruitmentBatchID);
-
-        $this->candidateStageRepository->updateCandidateStage(candidateStage: $candidateStage, data: [
-            'status' => 'failed',
-            'completed_at' => now(),
-            'passed' => false,
-        ]);
-    }
-
-    /***************************************************
-     *
-     *
-     *
-     * * Purpose:
-     *
-     *
-     *
-     **************************************************/
-
-    public function getCurrentCandidateStage(
-        int $candidateID,
-        int $recruitmentBatchID
-    ): CandidateStage {
         if (!$this->candidateRepository->candidateExistsByID(id: $candidateID)) {
             throw new CandidateNotFoundException(candidateId: $candidateID);
         }
@@ -194,88 +231,119 @@ class CandidateStageService implements CandidateStageServiceInterface
         if (!$this->recruitmentBatchRepository->recruitmentBatchExistsByID(id: $recruitmentBatchID)) {
             throw new RecruitmentBatchNotFoundException(recruitmentBatchId: $recruitmentBatchID);
         }
+    }
 
-        $candidateProgress = $this->candidateProgressRepository->findByCandidateIDAndRecruitmentBatchID(
+    private function dispatchCandidateUpdateJobs(array $candidatesID, int $batchID): void
+    {
+        $chunkSize = 10;
+
+        collect($candidatesID)->chunk($chunkSize)->each(function ($candidateIdChunk) use ($batchID) {
+            foreach ($candidateIdChunk as $candidateID) {
+                if (!$this->candidateRepository->candidateExistsByID(id: $candidateID)) {
+                    throw new CandidateNotFoundException(candidateId: $candidateID);
+                }
+
+                UpdateCandidateStageJob::dispatch($candidateID, $batchID)
+                    ->onQueue('candidate-updates');
+            }
+        });
+    }
+
+    private function handleRejectedCandidates(array $candidatesID, int $batchID): void
+    {
+        try {
+            $rejectedCandidates = $this->candidateProgressRepository
+                ->findByBatchIDAndExcludingByCandidateIds(batchID: $batchID, candidateIDs: $candidatesID);
+
+            $this->dispatchRejectionJobs($rejectedCandidates, $batchID);
+        } catch (CandidateProgressNotFoundException $e) {
+        }
+    }
+
+    private function dispatchRejectionJobs($rejectedCandidates, int $batchID): void
+    {
+        $chunkSize = 10;
+
+        collect($rejectedCandidates)->chunk($chunkSize)->each(function ($rejectedChunk) use ($batchID) {
+            foreach ($rejectedChunk as $rejectedCandidate) {
+                RejectCandidateJob::dispatch($rejectedCandidate->candidate_id, $batchID)
+                    ->onQueue('candidate-rejections');
+            }
+        });
+    }
+
+    private function candidateHasRequiredApprovals(int $candidateID): bool
+    {
+        try {
+            $approvals = $this->approvalRepository->findByCandidateId($candidateID);
+
+            if ($approvals->isEmpty()) {
+                return true;
+            }
+
+            $pendingApprovals = $approvals->where('status', 'pending');
+            if ($pendingApprovals->isNotEmpty()) {
+                return false;
+            }
+
+            $rejectedApprovals = $approvals->where('status', 'rejected');
+            if ($rejectedApprovals->isNotEmpty()) {
+                return false;
+            }
+
+            return true;
+        } catch (\Exception $e) {
+            throw new CandidateApprovalCheckException(
+                candidateId: $candidateID,
+                customMessage: "Failed to check approvals: {$e->getMessage()}"
+            );
+        }
+    }
+
+    private function verifyPreviousStagesCompleted(int $candidateID, int $recruitmentBatchID, int $currentStageOrder): bool
+    {
+        try {
+            $candidateProgresses = $this->candidateProgressRepository->findByCandidateIDAndRecruitmentBatchIDWithStages(
                 candidateID: $candidateID,
                 recruitmentBatchID: $recruitmentBatchID
             );
 
-        if ($candidateProgress->isEmpty()) {
-            throw new CandidateProgressNotFoundException(customMessage: "Candidate progress with candidate ID: $candidateID and recruitment batch ID: $recruitmentBatchID not found");
+            $completedStageOrders = $this->getCompletedStageOrders($candidateProgresses);
+
+            return $this->areAllPreviousStagesCompleted($completedStageOrders, $currentStageOrder);
+        } catch (CandidateProgressNotFoundException $e) {
+            // Re-throw domain exception
+            throw $e;
+        } catch (\Exception $e) {
+            throw new CandidateStageUpdateException(
+                candidateId: $candidateID,
+                batchId: $recruitmentBatchID,
+                customMessage: "Failed to verify previous stages: {$e->getMessage()}"
+            );
         }
-
-        $candidateStage = $this->candidateStageRepository->findById($candidateProgress->last()->candidate_stage_id);
-
-        return $candidateStage;
     }
 
-    /***************************************************
-     *
-     *
-     *
-     * * Purpose:
-     *
-     *
-     *
-     **************************************************/
-
-    private function candidateHasRequiredApprovals(int $candidateID): bool
+    private function getCompletedStageOrders($candidateProgresses): array
     {
-        $approvals = $this->approvalRepository->findByCandidateId($candidateID);
-
-        if ($approvals->isEmpty()) {
-            return true;
-        }
-
-        $pendingApprovals = $approvals->where('status', 'pending');
-        if ($pendingApprovals->isNotEmpty()) {
-            return false;
-        }
-
-        $rejectedApprovals = $approvals->where('status', 'rejected');
-        if ($rejectedApprovals->isNotEmpty()) {
-            return false;
-        }
-
-        return true;
+        return $candidateProgresses
+            ->filter(function ($progress) {
+                $stage = $progress->candidateStage;
+                return $stage->status === 'completed' && $stage->passed === true;
+            })
+            ->map(function ($progress) {
+                return $progress->candidateStage->recruitmentStage->order;
+            })
+            ->toArray();
     }
 
-    /***************************************************
-     *
-     *
-     *
-     * * Purpose:
-     *
-     *
-     *
-     **************************************************/
-
-     private function verifyPreviousStagesCompleted(
-        int $candidateID,
-        int $recruitmentBatchID,
-        int $currentStageOrder
-     ): bool {
-
-        $candidateProgresses = $this->candidateProgressRepository->findByCandidateIDAndRecruitmentBatchID(
-            candidateID: $candidateID,
-            recruitmentBatchID: $recruitmentBatchID
-        );
-
-        $completedStageOrders = [];
-        foreach($candidateProgresses as $candidateProgress) {
-            $candidateStageID = $candidateProgress->candidate_stage_id;
-            $candidateStage = $this->candidateStageRepository->findById(id: $candidateStageID);
-            if ($candidateStage->status === 'completed' && $candidateStage->passed = true) {
-                $completedStageOrders[] = $candidateStage->recruitmentStage->order;
-            }
-        }
-
-        for ($order = 1; $order < $currentStageOrder; $order++){
-            if (!in_array($order, $completedStageOrders)){
+    private function areAllPreviousStagesCompleted(array $completedStageOrders, int $currentStageOrder): bool
+    {
+        for ($order = 1; $order < $currentStageOrder; $order++) {
+            if (!in_array($order, $completedStageOrders)) {
                 return false;
             }
         }
 
         return true;
-     }
+    }
 }

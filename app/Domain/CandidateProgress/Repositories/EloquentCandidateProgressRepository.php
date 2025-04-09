@@ -17,8 +17,40 @@ class EloquentCandidateProgressRepository implements CandidateProgressRepository
 
     public function findByCandidateIDAndRecruitmentBatchID(int $candidateID, int $recruitmentBatchID): Collection
     {
+        $exists = CandidateProgress::where('candidate_id', $candidateID)
+            ->where('recruitment_batch_id', $recruitmentBatchID)
+            ->exists();
+
+        if (!$exists) {
+            throw new CandidateProgressNotFoundException();
+        }
+
+        return CandidateProgress::where('candidate_id', $candidateID)
+            ->where('recruitment_batch_id', $recruitmentBatchID)
+            ->orderBy('candidate_stage_id', 'asc')
+            ->get();
+    }
+
+    public function findByBatchIDAndExcludingByCandidateIds(int $batchID, array $candidateIDs): Collection
+    {
+        $exists = CandidateProgress::where('recruitment_batch_id', $batchID)
+            ->whereNotIn('candidate_id', $candidateIDs)
+            ->exists();
+
+        if (!$exists) {
+            throw new CandidateProgressNotFoundException();
+        }
+
+        return CandidateProgress::where('recruitment_batch_id', $batchID)
+            ->whereNotIn('candidate_id', $candidateIDs)
+            ->get();
+    }
+
+    public function findByCandidateIDAndRecruitmentBatchIDWithStages(int $candidateID, int $recruitmentBatchID): Collection
+    {
         $results = CandidateProgress::where('candidate_id', $candidateID)
             ->where('recruitment_batch_id', $recruitmentBatchID)
+            ->with(['candidateStage.recruitmentStage'])
             ->orderBy('candidate_stage_id', 'asc')
             ->get();
 
@@ -27,20 +59,6 @@ class EloquentCandidateProgressRepository implements CandidateProgressRepository
         }
 
         return $results;
-    }
-
-    public function findByBatchIDAndExcludingByCandidateIds(int $batchID, array $candidateIDs): Collection
-    {
-        $results =
-            CandidateProgress::
-            where('recruitment_batch_id', $batchID)->
-            whereNotIn('candidate_id', $candidateIDs)->get();
-        if ($results->isEmpty()){
-            throw new CandidateProgressNotFoundException();
-        }
-
-        return $results;
-
     }
 
 }

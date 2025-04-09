@@ -2,6 +2,7 @@
 
 namespace App\Domain\RecruitmentBatch\Repositories;
 
+use App\Domain\RecruitmentBatch\Exceptions\RecruitmentBatchNotFoundException;
 use App\Domain\RecruitmentBatch\Interfaces\RecruitmentBatchRepositoryInterface;
 use App\Domain\RecruitmentBatch\Models\RecruitmentBatch;
 
@@ -21,6 +22,26 @@ class EloquentRecruitmentBatchRepository implements RecruitmentBatchRepositoryIn
 
     public function findRecruitmentBatchByID(int $id): RecruitmentBatch
     {
-        return RecruitmentBatch::where('id', $id)->firstOrFail();
+        $batch = RecruitmentBatch::find($id);
+
+        if (!$batch) {
+            throw new RecruitmentBatchNotFoundException(recruitmentBatchId: $id);
+        }
+
+        return $batch;
+    }
+
+
+    public function findRecruitmentBatchWithPosition(int $batchID): RecruitmentBatch
+    {
+        $batch = RecruitmentBatch::with('position')
+            ->where('id', $batchID)
+            ->first();
+
+        if(!$batch){
+            throw new RecruitmentBatchNotFoundException($batchID);
+        }
+
+        return $batch;
     }
 }

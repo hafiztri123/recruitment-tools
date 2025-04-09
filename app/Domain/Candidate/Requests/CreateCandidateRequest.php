@@ -25,12 +25,12 @@ class CreateCandidateRequest extends FormRequest
             'first_name' => ['string', 'max:255', 'required'],
             'last_name' => ['string', 'max:255', 'required'],
             'email' => ['string', 'email:rfc,dns', 'required', 'unique:candidates,email', 'max:255'],
-            'phone' => ['nullable', 'phone:AUTO,ID', 'string'],
-            'whatsapp' => ['string', 'max:20', 'nullable'],
-            'resume_path' => ['string', 'max:255', 'nullable'],
-            'source' => ['string', 'max:100', 'nullable'],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'whatsapp' => ['nullable', 'string', 'max:20'],
+            'resume_path' => ['nullable', 'string', 'max:255'],
+            'source' => ['nullable', 'string', 'max:100'],
             'status' => ['string', 'in:active,hired,rejected,withdrawn', 'required'],
-            'notes' => ['string', 'nullable', 'max:1000'],
+            'notes' => ['nullable', 'string', 'max:1000'],
         ];
     }
 }

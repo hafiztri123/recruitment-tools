@@ -2,6 +2,7 @@
 
 namespace App\Domain\Candidate\Models;
 
+use App\Domain\CandidateProgress\Models\CandidateProgress;
 use Illuminate\Database\Eloquent\Model;
 
 class Candidate extends Model
@@ -17,4 +18,9 @@ class Candidate extends Model
         'status',
         'notes',
     ];
+
+    public function candidateProgresses()
+    {
+        return $this->hasMany(CandidateProgress::class, 'candidate_id');
+    }
 }

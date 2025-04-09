@@ -15,4 +15,5 @@ interface UserRepositoryInterface
         array $requiredApproverRoles,
         int $departmentId
     ): Collection;
+    public function getAllPotentialInterviewers(): Collection;
 }

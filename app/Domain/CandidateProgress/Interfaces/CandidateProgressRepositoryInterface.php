@@ -10,4 +10,5 @@ interface CandidateProgressRepositoryInterface
     public function create(CandidateProgress $candidateProgress): void;
     public function findByCandidateIDAndRecruitmentBatchID(int $candidateID, int $recruitmentBatchID): Collection;
     public function findByBatchIDAndExcludingByCandidateIds(int $batchID, array $candidateIDs);
+    public function findByCandidateIDAndRecruitmentBatchIDWithStages(int $candidateID, int $recruitmentBatchID): Collection;
 }
