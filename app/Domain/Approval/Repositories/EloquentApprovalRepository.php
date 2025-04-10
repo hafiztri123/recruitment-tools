@@ -20,7 +20,7 @@ class EloquentApprovalRepository implements ApprovalRepositoryInterface
             ->exists();
 
         if (!$exists) {
-            return collect();
+            return new Collection();
         }
 
         return Approval::where('approver_id', $approverId)
@@ -35,7 +35,7 @@ class EloquentApprovalRepository implements ApprovalRepositoryInterface
             ->exists();
 
         if (!$exists) {
-            return collect();
+            return new Collection();
         }
 
         return Approval::where('candidate_id', $candidateId)
@@ -55,7 +55,7 @@ class EloquentApprovalRepository implements ApprovalRepositoryInterface
         $exists = Approval::where('candidate_id', $candidateId)->exists();
 
         if (!$exists) {
-            return collect();
+            return new Collection();
         }
 
         return Approval::where('candidate_id', $candidateId)->get();

@@ -68,8 +68,8 @@ class CandidatesStageUpdateStatusRequest extends FormRequest
                 foreach($this->candidates as $candidateID){
                     try{
                         $currentStage = $candidateStageService->getCurrentCandidateStage(
-                            candidateID: $candidateID,
-                            batchID: $batchID
+                            $candidateID,
+                            $batchID
                         );
 
                         if($currentStage->status === 'completed'){

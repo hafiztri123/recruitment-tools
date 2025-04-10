@@ -7,15 +7,26 @@ use App\Shared\Exceptions\ResourceNotFoundException;
 class DepartmentNotFoundException extends ResourceNotFoundException
 {
     public function __construct(
-        ?int $departmentId = null,
-        ?string $customMessage = null
+        protected ?int $departmentId = null,
+        protected ?string $customMessage = null
 
     )
     {
         parent::__construct(
             resourceType: 'Department',
             resourceId: $departmentId,
-            customMessage: $customMessage
+            customMessage: $customMessage ?: $this->createDefaultMessage()
         );
+    }
+
+    public function  createDefaultMessage()
+    {
+        $message = "Department";
+
+        if($this->departmentId){
+            $message .= " with ID: $this->departmentId";
+        }
+
+        return "$message not found";
     }
 }

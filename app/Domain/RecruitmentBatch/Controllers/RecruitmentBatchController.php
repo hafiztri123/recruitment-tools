@@ -5,8 +5,8 @@ namespace App\Domain\RecruitmentBatch\Controllers;
 use App\Domain\RecruitmentBatch\Interfaces\RecruitmentBatchServiceInterface;
 use App\Domain\RecruitmentBatch\Models\RecruitmentBatch;
 use App\Domain\RecruitmentBatch\Requests\CreateRecruitmentBatchRequest;
-use App\Shared\ApiResponderService;
 use App\Shared\Controllers\Controller;
+use App\Shared\Services\ApiResponderService;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 

@@ -14,6 +14,7 @@ class UpdateApprovalRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'candidate_id' => 'required|integer',
             'status' => 'required|in:approved,rejected|string',
             'comments' => 'nullable|string'
         ];

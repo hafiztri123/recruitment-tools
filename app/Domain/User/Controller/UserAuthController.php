@@ -5,8 +5,8 @@ namespace App\Domain\User\Controller;
 use App\Domain\User\Interfaces\UserServiceInterface;
 use App\Domain\User\Requests\UserLoginRequest;
 use App\Domain\User\Requests\UserRegisterRequest;
-use App\Shared\ApiResponderService;
 use App\Shared\Controllers\Controller;
+use App\Shared\Services\ApiResponderService;
 use Illuminate\Http\Response;
 
 class UserAuthController extends Controller

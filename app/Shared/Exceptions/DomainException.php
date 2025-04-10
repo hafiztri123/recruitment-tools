@@ -14,7 +14,7 @@ class DomainException extends Exception
         protected ?int $httpCode = Response::HTTP_INTERNAL_SERVER_ERROR
     ) {
         $this->resourceType = $resourceType;
-        $message = $customMessage ?: 'Internal server error';
+        $message = $customMessage;
 
         parent::__construct(message: $message, code: $httpCode);
     }
@@ -23,5 +23,7 @@ class DomainException extends Exception
     {
         return $this->resourceType;
     }
+
+
 
 }

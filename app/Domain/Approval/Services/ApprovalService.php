@@ -16,6 +16,7 @@ use App\Shared\Exceptions\BadRequestException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Log;
 
 class ApprovalService implements ApprovalServiceInterface
 {
@@ -43,6 +44,11 @@ class ApprovalService implements ApprovalServiceInterface
 
         DB::transaction(function () use ($data) {
             $approval = $this->getApprovalForUpdate($data);
+
+            if (!isset($data['candidate_id'])) {
+                $data['candidate_id'] = $approval->candidate_id;
+            }
+
             $this->updateApprovalModel($approval, $data);
             $this->approvalRepository->save(approval: $approval);
         });
@@ -68,22 +74,44 @@ class ApprovalService implements ApprovalServiceInterface
     public function getRequiredApproversForCandidate(int $candidateID): array
     {
         $requiredApproverRoles = $this->getRequiredApproverRoles();
+        Log::info("Required approver roles: " . implode(", ", $requiredApproverRoles));
 
         $candidate = $this->candidateRepository->findCandidateWithProgressAndBatch($candidateID);
         $departmentId = $this->getDepartmentIdFromCandidate($candidate);
+        Log::info("Department ID for candidate {$candidateID}: {$departmentId}");
 
-        return $this->userRepository->findUsersByRolesAndDepartment(
+        $approvers = $this->userRepository->findUsersByRolesAndDepartment(
             $requiredApproverRoles,
             $departmentId
-        )->toArray();
-    }
+        );
 
+        if ($approvers->isEmpty()) {
+            Log::warning("No approvers found with roles [" . implode(", ", $requiredApproverRoles) . "] in department {$departmentId}");
+        } else {
+            foreach ($approvers as $approver) {
+                Log::info("Found approver: ID {$approver->id}, Name {$approver->name}, Department {$approver->department_id}");
+            }
+        }
+
+        return $approvers->toArray();
+    }
     public function requestRequiredApprovals(int $candidateID): void
     {
+        Log::info("Starting approval request process for candidate ID: {$candidateID}");
+
         $requiredApprovers = $this->getRequiredApproversForCandidate($candidateID);
+        Log::info("Found " . count($requiredApprovers) . " required approvers");
+
+        if (empty($requiredApprovers)) {
+            Log::warning("No approvers found for candidate ID: {$candidateID}. Check if department heads and HR heads exist in the system.");
+        }
+
         $existingApproverIds = $this->approvalRepository->findApproverIdsByCandidateId($candidateID);
+        Log::info("Found " . count($existingApproverIds) . " existing approver IDs");
 
         $approversNeedingApproval = $this->filterApproversNeeded($requiredApprovers, $existingApproverIds);
+        Log::info("After filtering, " . $approversNeedingApproval->count() . " approvers need to create approval for");
+
         $this->createApprovalRequestsForApprovers($approversNeedingApproval, $candidateID);
     }
 
@@ -160,7 +188,9 @@ class ApprovalService implements ApprovalServiceInterface
 
     private function getRequiredApproverRoles(): array
     {
-        return Config::get('recruitment.approvers.roles', ['head-of-hr', 'department-head']);
+        $roles = Config::get('recruitment.approvers.roles', ['head-of-hr', 'department-head']);
+        Log::info("Required approver roles from config: " . implode(', ', $roles));
+        return $roles;
     }
 
     private function getDepartmentIdFromCandidate($candidate): int
@@ -178,7 +208,7 @@ class ApprovalService implements ApprovalServiceInterface
     private function filterApproversNeeded(array $requiredApprovers, array $existingApproverIds): \Illuminate\Support\Collection
     {
         return collect($requiredApprovers)->filter(function ($approver) use ($existingApproverIds) {
-            return !in_array($approver->id, $existingApproverIds);
+            return !in_array($approver['id'], $existingApproverIds);
         });
     }
 
@@ -188,9 +218,10 @@ class ApprovalService implements ApprovalServiceInterface
             DB::transaction(function () use ($approverChunk, $candidateID) {
                 $approvalsToCreate = [];
                 foreach ($approverChunk as $approver) {
+                    // Access id as array key instead of object property
                     $approvalsToCreate[] = [
                         'candidate_id' => $candidateID,
-                        'approver_id' => $approver->id,
+                        'approver_id' => $approver['id'],
                         'status' => 'pending',
                         'comments' => 'Automatically generated approval request',
                         'created_at' => now(),

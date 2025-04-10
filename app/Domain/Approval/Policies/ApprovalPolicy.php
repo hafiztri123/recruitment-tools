@@ -4,7 +4,7 @@ namespace App\Domain\Approval\Policies;
 
 use App\Domain\Approval\Models\Approval;
 use App\Domain\User\Models\User;
-use App\Shared\PermissionService;
+use App\Shared\Services\PermissionService;
 
 class ApprovalPolicy
 {

@@ -31,7 +31,9 @@ class CandidateService implements CandidateServiceInterface
             $candidate = $this->makeCandidate(candidateData: $candidateData);
             $this->candidateRepository->create(candidate: $candidate);
 
-            CandidateCreated::dispatch($candidate, $batchID)->afterCommit();
+            DB::afterCommit(function () use ($candidate, $batchID) {
+                CandidateCreated::dispatch($candidate, $batchID);
+            });
         });
     }
 

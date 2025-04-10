@@ -4,7 +4,7 @@ namespace App\Domain\Interview\Policies;
 
 use App\Domain\Candidate\Policies\CandidatePolicy;
 use App\Domain\User\Models\User;
-use App\Shared\PermissionService;
+use App\Shared\Services\PermissionService;
 
 class InterviewPolicy
 {

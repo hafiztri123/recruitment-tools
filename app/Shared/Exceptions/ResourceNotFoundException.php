@@ -17,7 +17,7 @@ class ResourceNotFoundException extends DomainException
 
         parent::__construct(
             resourceType: $resourceType,
-            customMessage: $customMessage,
+            customMessage: $message,
             httpCode: Response::HTTP_NOT_FOUND
         );
     }

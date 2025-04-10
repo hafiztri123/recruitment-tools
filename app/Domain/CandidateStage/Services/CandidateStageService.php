@@ -27,6 +27,7 @@ use App\Domain\RecruitmentBatch\Exceptions\RecruitmentBatchNotFoundException;
 use App\Domain\RecruitmentBatch\Interfaces\RecruitmentBatchRepositoryInterface;
 use App\Domain\RecruitmentStage\Interfaces\RecruitmentStageRepositoryInterface;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class CandidateStageService implements CandidateStageServiceInterface
 {
@@ -211,7 +212,10 @@ class CandidateStageService implements CandidateStageServiceInterface
                 'passed' => true,
             ]);
 
-            CandidateStageUpdated::dispatch($candidateStage, $recruitmentBatchID, $candidateID)->afterCommit();
+            DB::afterCommit(function() use ($candidateStage, $recruitmentBatchID, $candidateID){
+                CandidateStageUpdated::dispatch($candidateStage, $recruitmentBatchID, $candidateID);
+            });
+
         });
     }
 
@@ -237,14 +241,13 @@ class CandidateStageService implements CandidateStageServiceInterface
     {
         $chunkSize = 10;
 
-        collect($candidatesID)->chunk($chunkSize)->each(function ($candidateIdChunk) use ($batchID) {
+        collect($candidatesID)->chunk(count($candidatesID),$chunkSize)->each(function ($candidateIdChunk) use ($batchID) {
             foreach ($candidateIdChunk as $candidateID) {
                 if (!$this->candidateRepository->candidateExistsByID(id: $candidateID)) {
                     throw new CandidateNotFoundException(candidateId: $candidateID);
                 }
 
-                UpdateCandidateStageJob::dispatch($candidateID, $batchID)
-                    ->onQueue('candidate-updates');
+                UpdateCandidateStageJob::dispatch($candidateID, $batchID);
             }
         });
     }
@@ -266,8 +269,7 @@ class CandidateStageService implements CandidateStageServiceInterface
 
         collect($rejectedCandidates)->chunk($chunkSize)->each(function ($rejectedChunk) use ($batchID) {
             foreach ($rejectedChunk as $rejectedCandidate) {
-                RejectCandidateJob::dispatch($rejectedCandidate->candidate_id, $batchID)
-                    ->onQueue('candidate-rejections');
+                RejectCandidateJob::dispatch($rejectedCandidate->candidate_id, $batchID);
             }
         });
     }
@@ -308,13 +310,28 @@ class CandidateStageService implements CandidateStageServiceInterface
                 recruitmentBatchID: $recruitmentBatchID
             );
 
-            $completedStageOrders = $this->getCompletedStageOrders($candidateProgresses);
+            // Debug output
+            Log::info("Verifying previous stages for candidate: $candidateID, batch: $recruitmentBatchID, current stage: $currentStageOrder");
+            foreach ($candidateProgresses as $progress) {
+                $stage = $progress->candidateStage;
+                $order = $stage->recruitmentStage->order;
+                $status = $stage->status;
+                $passed = $stage->passed ? 'true' : 'false';
+                Log::info("Stage order: $order, status: $status, passed: $passed");
+            }
 
-            return $this->areAllPreviousStagesCompleted($completedStageOrders, $currentStageOrder);
+            $completedStageOrders = $this->getCompletedStageOrders($candidateProgresses);
+            Log::info("Completed stage orders: " . implode(', ', $completedStageOrders));
+
+            $result = $this->areAllPreviousStagesCompleted($completedStageOrders, $currentStageOrder);
+            Log::info("All previous stages completed: " . ($result ? 'true' : 'false'));
+
+            return $result;
         } catch (CandidateProgressNotFoundException $e) {
-            // Re-throw domain exception
+            Log::error("CandidateProgressNotFoundException: " . $e->getMessage());
             throw $e;
         } catch (\Exception $e) {
+            Log::error("Exception in verifyPreviousStages: " . $e->getMessage());
             throw new CandidateStageUpdateException(
                 candidateId: $candidateID,
                 batchId: $recruitmentBatchID,
@@ -325,15 +342,19 @@ class CandidateStageService implements CandidateStageServiceInterface
 
     private function getCompletedStageOrders($candidateProgresses): array
     {
-        return $candidateProgresses
-            ->filter(function ($progress) {
-                $stage = $progress->candidateStage;
-                return $stage->status === 'completed' && $stage->passed === true;
-            })
-            ->map(function ($progress) {
-                return $progress->candidateStage->recruitmentStage->order;
-            })
-            ->toArray();
+        $completed = [];
+
+        foreach ($candidateProgresses as $progress) {
+            $stage = $progress->candidateStage;
+            $order = $stage->recruitmentStage->order;
+
+            if ($stage->status === 'completed' && $stage->passed == true) {
+                $completed[] = $order;
+            }
+        }
+
+        Log::info("Debug completed stages: " . json_encode($completed));
+        return $completed;
     }
 
     private function areAllPreviousStagesCompleted(array $completedStageOrders, int $currentStageOrder): bool

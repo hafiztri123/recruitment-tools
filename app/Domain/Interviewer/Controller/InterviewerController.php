@@ -2,13 +2,13 @@
 
 namespace App\Domain\Interviewer\Controller;
 
-use App\Domain\Interview\Models\Interviewer;
 use App\Domain\Interviewer\Interfaces\InterviewerServiceInterface;
+use App\Domain\Interviewer\Models\Interviewer;
 use App\Domain\Interviewer\Requests\CreateInterviewerRequest;
 use App\Domain\Interviewer\Requests\CreateMultipleInterviewerRequest;
 use App\Domain\Interviewer\Requests\InterviewerFillFeedbackRequest;
-use App\Shared\ApiResponderService;
 use App\Shared\Controllers\Controller;
+use App\Shared\Services\ApiResponderService;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 

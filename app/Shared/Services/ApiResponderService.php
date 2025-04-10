@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Shared;
+namespace App\Shared\Services;
 
 use App\Shared\Traits\ApiResponder;
 

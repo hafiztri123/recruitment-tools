@@ -1,6 +1,9 @@
 <?php
 
-use App\Shared\ApiResponderService;
+use App\Shared\Exceptions\BadRequestException;
+use App\Shared\Exceptions\DomainException;
+use App\Shared\Exceptions\ResourceNotFoundException;
+use App\Shared\Services\ApiResponderService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\MassAssignmentException;
@@ -54,6 +57,12 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
+        $exceptions->render(function( BadRequestException $e, Request $request){
+            if ($request->is(config('constants.ROUTE_API_WILDCARD'))) {
+                return (new ApiResponderService)->failResponse(message: $e->getMessage(), statusCode: Response::HTTP_BAD_REQUEST, errors: $e->getErrors());
+        }
+        });
+
 
 
         $exceptions->render(function(QueryException $e, Request $request){
@@ -73,6 +82,15 @@ return Application::configure(basePath: dirname(__DIR__))
             return (new ApiResponderService)->failResponse(message: $e->getMessage(), statusCode: Response::HTTP_UNPROCESSABLE_ENTITY);
         }
     });
+
+
+
+    $exceptions->render(function (DomainException $e, Request $request){
+        if ($request->is(config('constants.ROUTE_API_WILDCARD'))) {
+            return (new ApiResponderService)->failResponse(message: $e->getMessage(), statusCode: $e->getCode());
+        }
+    });
+
 
 
 

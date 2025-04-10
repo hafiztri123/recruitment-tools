@@ -22,7 +22,7 @@ use App\Domain\User\Interfaces\UserServiceInterface;
 use App\Domain\User\Services\UserService;
 use App\Shared\JobBatches\Interfaces\JobBatchServiceInterface;
 use App\Shared\JobBatches\Services\JobBatchService;
-use App\Shared\PermissionService;
+use App\Shared\Services\PermissionService;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider

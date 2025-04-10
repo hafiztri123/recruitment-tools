@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             HeadOfHRSeeder::class,
             DepartmentSeeder::class,
             RecruitmentStageSeeder::class,
+            DepartmentHeadSeeder::class,
         ]);
 
     }
